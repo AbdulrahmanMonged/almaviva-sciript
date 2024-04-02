@@ -1,0 +1,5 @@
+success = "#22bb33"
+danger = "#bb2124"
+warning = "#ff8800"
+info = "#33b5e5"
+secondary = "#999999"
