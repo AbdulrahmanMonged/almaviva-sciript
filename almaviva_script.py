@@ -104,8 +104,11 @@ def filling_data(browser, wait, args):
 def start_program(*args):
     options = Options()
     options.add_experimental_option("detach", True)
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
     browser = webdriver.Chrome(options=options)
     wait = WebDriverWait(browser, 10)
+    browser.maximize_window()
     window = args[-1]
 
     try:
