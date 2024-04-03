@@ -165,6 +165,7 @@ class Window(CTkFrame):
                     )
                     self.restoring_function = self.after(100, self.driver_thread.start)
                     self.enable_components()
+                    self.restoring_function = None
                 else:
                     self.restoring_function = self.after(
                         1000, self.update_timer, det_h, det_min
@@ -172,6 +173,7 @@ class Window(CTkFrame):
             else:
                 if self.restoring_function:
                     self.after_cancel(self.restoring_function)
+                    self.restoring_function = None
                 if self.driver_thread:
                     self.driver_thread.join()
                 self.label2.configure(text="")
