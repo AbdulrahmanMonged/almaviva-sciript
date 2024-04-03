@@ -6,10 +6,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from awesometkinter.bidirender import render_text
 from colors import *
 
+MAIN_PAGE = "https://egy.almaviva-visa.it/"
+APPOINTMENT_PAGE = "https://egy.almaviva-visa.it/appointment"
+SIGN_IN_PAGE = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=L4uaP15WBdRqh766Az3-IkN6i5nk3fg1W-5497pOGN0&code_challenge_method=S256&nonce=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I#"
+
+PAGES = [MAIN_PAGE, APPOINTMENT_PAGE, SIGN_IN_PAGE]
+
 def filling_data(browser, wait, args):
     window = args[-1]
     try:
-        browser.get("https://egy.almaviva-visa.it/appointment")
+        browser.get(APPOINTMENT_PAGE)
         wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "mat-select#mat-select-0"))
         )
@@ -85,7 +91,7 @@ def filling_data(browser, wait, args):
         else:
             filling_data(browser, wait, args)
     except Exception as e:
-        if browser.current_url == "https://egy.almaviva-visa.it/" or browser.current_url == "https://egy.almaviva-visa.it/appointment":
+        if browser.current_url in PAGES:
             filling_data(browser, wait, args)
         else:
             window.state_lbl.configure(
@@ -104,7 +110,7 @@ def start_program(*args):
     try:
         if 1:
             browser.get(
-                "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=L4uaP15WBdRqh766Az3-IkN6i5nk3fg1W-5497pOGN0&code_challenge_method=S256&nonce=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I#"
+                SIGN_IN_PAGE
             )
             try:
                 wait.until(EC.presence_of_element_located((By.ID, "username")))
