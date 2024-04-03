@@ -6565,3 +6565,7 @@ venv/Lib/site-packages/twocaptcha/__pycache__/__init__.cpython-312.pyc
 venv/Lib/site-packages/twocaptcha/__pycache__/api.cpython-312.pyc
 venv/Lib/site-packages/twocaptcha/__pycache__/solver.cpython-312.pyc
 venv/Scripts/normalizer.exe
+__pycache__/almaviva_script.cpython-312.pyc
+__pycache__/colors.cpython-312.pyc
+__pycache__/customized_components.cpython-312.pyc
+__pycache__/gui.cpython-312.pyc
