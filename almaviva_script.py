@@ -28,11 +28,7 @@ def submit(browser, wait, args):
         print("error")
         window.state_lbl.configure(text=render_text("تم انتهاء المهمة..."), text_color=success)
     else:
-        err_btn = browser.find_element(
-            By.XPATH, "/html[1]/body[1]/app-root[1]/div[1]/app-appointment-page[1]/div[1]/mat-stepper[1]/div[1]/div[2]/div[1]/app-memebers-number[1]/app-visasys-allert-card[1]/div[2]/div[3]/button[1]"
-        )
-        err_btn.click()
-        submit(browser, wait, args)
+        filling_data(browser, wait, args)
 
 
 def filling_data(browser, wait, args):
