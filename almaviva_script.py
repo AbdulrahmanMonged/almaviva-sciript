@@ -85,7 +85,7 @@ def filling_data(browser, wait, args):
         else:
             filling_data(browser, wait, args)
     except Exception as e:
-        if "state" in browser.current_url or browser.current_url == "https://egy.almaviva-visa.it/":
+        if browser.current_url == "https://egy.almaviva-visa.it/" or browser.current_url == "https://egy.almaviva-visa.it/appointment":
             filling_data(browser, wait, args)
         else:
             window.state_lbl.configure(
