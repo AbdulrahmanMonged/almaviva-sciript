@@ -139,7 +139,16 @@ def start_program(*args):
             filling_data(browser, wait, args)
 
     except Exception as e:
-        window.state_lbl.configure(
-            text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger
+            browser.quit()
+            if (
+            browser.current_url in PAGES
+            or "oauth2-visaSystem-realm-pkce" in browser.current_url
+        ):
+                
+                start_program(browser, wait, args) 
+                window.state_lbl.configure(
+            text=render_text("يوجد خطأ بالموقع حاليا...\nجاري اعادة المحاولة..."), text_color=danger
         )
-        browser.quit()
+            else:
+                window.state_lbl.configure(
+            text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger)
