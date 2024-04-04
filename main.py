@@ -1,4 +1,4 @@
-from gui import Window
+from cogs.gui import Window
 from customtkinter import CTk
 import os
 import sys

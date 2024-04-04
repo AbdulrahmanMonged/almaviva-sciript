@@ -1,19 +1,22 @@
 from customtkinter import *
 from tkinter import messagebox
-from datetime import datetime, timedelta
-from almaviva_script import start_program
-from customized_components import FloatSpinbox
+from .almaviva_script import start_program
+from .customized_components import FloatSpinbox
 from awesometkinter.bidirender import render_text
 from threading import Thread
-from colors import *
+from .colors import *
+from .Countdown import Countdown
 
 
 class Window(CTkFrame):
     def __init__(self, parent):
         CTkFrame.__init__(self, parent)
         self.configure(height=400, width=400)
-        self.restoring_function = None
-        self.driver_thread = None
+        
+        self.program = None
+        self.update_method = None
+        self.countdown: Countdown = Countdown()
+
         label = CTkLabel(
             self, text="ALMAVIVA SCRIPT", font=CTkFont(family="Segoe UI", size=15)
         )
@@ -81,7 +84,7 @@ class Window(CTkFrame):
         )
         self.select_trip_date_lbl.place(relx=0.82, rely=0.65, anchor=CENTER)
         self.select_trip_date = CTkOptionMenu(
-            self, values=self.get_days_in_month(), command=self.optionmenu_callback
+            self, values=self.countdown.get_days_in_month(), command=self.optionmenu_callback
         )
         self.select_trip_date.place(relx=0.5, rely=0.645, anchor=CENTER)
         self.state_lbl = CTkLabel(
@@ -91,25 +94,23 @@ class Window(CTkFrame):
             text_color=info,
         )
         self.state_lbl.place(relx=0.2, rely=0.6, anchor=CENTER)
-        self.start_program = CTkButton(
+        self.start_btn = CTkButton(
             self,
             text=render_text("بدأ البرنامج"),
             font=CTkFont(family="Segoe UI", size=15),
             command=lambda: self.update_timer(self.get_time()[0], self.get_time()[1]),
         )
-        self.start_program.place(relx=0.6, rely=0.82, anchor=CENTER)
-        self.stop_prgram = CTkButton(
+        self.start_btn.place(relx=0.6, rely=0.82, anchor=CENTER)
+        self.stop_btn = CTkButton(
             self,
             text=render_text("ايقاف البرنامج"),
             font=CTkFont(family="Segoe UI", size=15),
-            command=lambda: self.update_timer(
-                self.get_time()[0], self.get_time()[1], 0
-            ),
+            command=self.stop_excution,
             fg_color="#FF204E",
             hover_color="#A0153E",
             state=DISABLED,
         )
-        self.stop_prgram.place(relx=0.4, rely=0.82, anchor=CENTER)
+        self.stop_btn.place(relx=0.4, rely=0.82, anchor=CENTER)
         self.components = [
             self.hours_entry,
             self.email_entry,
@@ -117,74 +118,29 @@ class Window(CTkFrame):
             self.password_entry,
             self.time_type,
             self.select_trip_date,
-            self.start_program,
+            self.start_btn,
             self.select_center,
             self.select_destination,
         ]
 
-    def update_timer(self, det_h=0, det_min=0, condition=True):
+    def update_timer(self, det_h=0, det_min=0):
+        self.countdown = Countdown(det_h, det_min)
+        seconds = self.countdown.get_remaining_time()[2]
         try:
-            if condition:
-                self.disable_components()
-                current_date = datetime.now()
-                next_date = current_date.replace(
-                    hour=det_h, minute=det_min, second=5
-                ) - (current_date + timedelta(days=1))
-                hours, remainder = divmod(next_date.seconds, 3600)
-                minutes, seconds = divmod(remainder, 60)
-                missing_time = "{0}:{1}:{2}".format(
-                    (hours if hours >= 10 else "0" + str(hours)),
-                    (minutes if minutes >= 10 else "0" + str(minutes)),
-                    (seconds if seconds >= 10 else "0" + str(seconds)),
+            self.disable_components()
+            self.update_countdown_lbl()
+            self.program = self.after(
+            seconds * 1000,
+            self.start_excution,
                 )
-                self.label2.configure(text=missing_time)
-                self.label3.configure(
+            self.label3.configure(
                     text=render_text("الوقت المتبقي حتي يتم تنفيذ البرنامج"),
                     text_color="white",
                 )
-                if hours == 0 and minutes == 0 and seconds == 0:
-                    self.driver_thread = Thread(
-                        target=start_program,
-                        args=(
-                            self.email_entry.get(),
-                            self.password_entry.get(),
-                            self.select_trip_date.get(),
-                            self.select_center.get(),
-                            self.select_destination.get(),
-                            self,
-                        ),
-                    )
-                    self.label3.configure(
-                        text=render_text("البرنامج بدأ التنفيذ"),
-                        font=("Muli", 17, "bold"),
-                        text_color=success,
-                    )
-                    self.state_lbl.configure(
-                        text=render_text("بدأت عملية التنفيذ بنجاح.."),
-                        text_color=success,
-                    )
-                    self.restoring_function = self.after(100, self.driver_thread.start)
-                    self.enable_components()
-                    self.restoring_function = None
-                else:
-                    self.restoring_function = self.after(
-                        1000, self.update_timer, det_h, det_min
-                    )
-            else:
-                if self.restoring_function:
-                    self.after_cancel(self.restoring_function)
-                    self.restoring_function = None
-                if self.driver_thread:
-                    self.driver_thread.join()
-                self.label2.configure(text="")
-                self.label3.configure(
-                    text=render_text("البرنامج توقف"), text_color="#FF204E"
-                )
-                self.enable_components()
             self.label3.place(relx=0.2, rely=0.25, anchor=CENTER)
             self.label2.place(relx=0.2, rely=0.31, anchor=CENTER)
         except Exception as e:
-            print("Error occured just don't give a fuck")
+            pass
 
     def get_time(self):
         hours, mins = [self.hours_entry.get(), self.minutes_entry.get()]
@@ -207,15 +163,57 @@ class Window(CTkFrame):
             int(mins),
         )
 
+    def update_countdown_lbl(self):
+        hours, minutes, seconds = self.countdown.get_remaining_time()
+        missing_time = "{0}:{1}:{2}".format(
+            (hours if hours >= 10 else "0" + str(hours)),
+            (minutes if minutes >= 10 else "0" + str(minutes)),
+            (seconds if seconds >= 10 else "0" + str(seconds)),
+        )
+        self.label2.configure(text=missing_time)
+        self.update_method = self.after(1000, self.update_countdown_lbl)
+
+    def start_excution(self):
+        self.program_thread = Thread(
+            target=start_program,
+            args=(
+                self.email_entry.get(),
+                self.password_entry.get(),
+                self.select_trip_date.get(),
+                self.select_center.get(),
+                self.select_destination.get(),
+                self,
+            )
+        )
+        self.program_thread.start()
+        if self.update_method:
+            self.after_cancel(self.update_method)
+        self.label3.configure(
+            text=render_text("البرنامج بدأ التنفيذ"),
+            font=("Muli", 17, "bold"),
+            text_color=success,
+        )
+        self.state_lbl.configure(
+            text=render_text("بدأت عملية التنفيذ بنجاح.."),
+            text_color=success,
+        )
+        self.enable_components()
+        
+
+    def stop_excution(self):
+        if self.program:
+            self.after_cancel(self.program)
+        if self.update_method:
+            self.after_cancel(self.update_method)
+        self.label2.configure(text="")
+        self.label3.configure(
+                    text=render_text("البرنامج توقف"), text_color="#FF204E"
+                )
+        self.enable_components()
+        
     def optionmenu_callback(self, choice):
         return choice
 
-    def get_days_in_month(self):
-        current_day = datetime.now()
-        next_month = current_day.replace(month=current_day.month + 1)
-        return list(
-            map(str, range(current_day.day, (next_month - current_day).days + 1))
-        )
 
     def disable_components(self):
         for component in self.components:
@@ -223,7 +221,7 @@ class Window(CTkFrame):
                 component.configure(state=DISABLED)
             except:
                 component.disable_component()
-        self.stop_prgram.configure(state=NORMAL)
+        self.stop_btn.configure(state=NORMAL)
 
     def enable_components(self):
         for component in self.components:
@@ -231,7 +229,7 @@ class Window(CTkFrame):
                 component.configure(state=NORMAL)
             except:
                 component.enable_component()
-        self.stop_prgram.configure(state=DISABLED)
+        self.stop_btn.configure(state=DISABLED)
 
     def validation(self):
         if (

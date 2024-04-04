@@ -4,7 +4,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from awesometkinter.bidirender import render_text
-from colors import *
+from .colors import *
 
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
 APPOINTMENT_PAGE = "https://egy.almaviva-visa.it/appointment"
@@ -91,7 +91,7 @@ def filling_data(browser, wait, args):
         else:
             filling_data(browser, wait, args)
     except Exception as e:
-        if browser.current_url in PAGES:
+        if browser.current_url in PAGES or "oauth2-visaSystem-realm-pkce" in browser.current_url:
             filling_data(browser, wait, args)
         else:
             window.state_lbl.configure(
