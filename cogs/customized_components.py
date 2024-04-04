@@ -1,6 +1,7 @@
 import customtkinter
 from typing import Union, Callable
 
+
 class FloatSpinbox(customtkinter.CTkFrame):
     def __init__(
         self,
@@ -54,6 +55,7 @@ class FloatSpinbox(customtkinter.CTkFrame):
                 self.entry.insert(0, int(value))
         except ValueError:
             return
+
     def subtract_button_callback(self):
         if self.command is not None:
             self.command()

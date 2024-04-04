@@ -12,7 +12,7 @@ class Window(CTkFrame):
     def __init__(self, parent):
         CTkFrame.__init__(self, parent)
         self.configure(height=400, width=400)
-        
+
         self.program = None
         self.update_method = None
         self.countdown: Countdown = Countdown()
@@ -84,7 +84,9 @@ class Window(CTkFrame):
         )
         self.select_trip_date_lbl.place(relx=0.82, rely=0.65, anchor=CENTER)
         self.select_trip_date = CTkOptionMenu(
-            self, values=self.countdown.get_days_in_month(), command=self.optionmenu_callback
+            self,
+            values=self.countdown.get_days_in_month(),
+            command=self.optionmenu_callback,
         )
         self.select_trip_date.place(relx=0.5, rely=0.645, anchor=CENTER)
         self.state_lbl = CTkLabel(
@@ -125,18 +127,18 @@ class Window(CTkFrame):
 
     def update_timer(self, det_h=0, det_min=0):
         self.countdown = Countdown(det_h, det_min)
-        seconds = self.countdown.get_remaining_time()[2]
+        milliseconds = self.countdown.time_to_start_program()
         try:
             self.disable_components()
             self.update_countdown_lbl()
             self.program = self.after(
-            seconds * 1000,
-            self.start_excution,
-                )
+                milliseconds,
+                self.start_excution,
+            )
             self.label3.configure(
-                    text=render_text("الوقت المتبقي حتي يتم تنفيذ البرنامج"),
-                    text_color="white",
-                )
+                text=render_text("الوقت المتبقي حتي يتم تنفيذ البرنامج"),
+                text_color="white",
+            )
             self.label3.place(relx=0.2, rely=0.25, anchor=CENTER)
             self.label2.place(relx=0.2, rely=0.31, anchor=CENTER)
         except Exception as e:
@@ -183,7 +185,7 @@ class Window(CTkFrame):
                 self.select_center.get(),
                 self.select_destination.get(),
                 self,
-            )
+            ),
         )
         self.program_thread.start()
         if self.update_method:
@@ -198,7 +200,6 @@ class Window(CTkFrame):
             text_color=success,
         )
         self.enable_components()
-        
 
     def stop_excution(self):
         if self.program:
@@ -206,14 +207,11 @@ class Window(CTkFrame):
         if self.update_method:
             self.after_cancel(self.update_method)
         self.label2.configure(text="")
-        self.label3.configure(
-                    text=render_text("البرنامج توقف"), text_color="#FF204E"
-                )
+        self.label3.configure(text=render_text("البرنامج توقف"), text_color="#FF204E")
         self.enable_components()
-        
+
     def optionmenu_callback(self, choice):
         return choice
-
 
     def disable_components(self):
         for component in self.components:

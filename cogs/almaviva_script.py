@@ -12,6 +12,7 @@ SIGN_IN_PAGE = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-p
 
 PAGES = [MAIN_PAGE, APPOINTMENT_PAGE, SIGN_IN_PAGE]
 
+
 def filling_data(browser, wait, args):
     window = args[-1]
     try:
@@ -91,7 +92,10 @@ def filling_data(browser, wait, args):
         else:
             filling_data(browser, wait, args)
     except Exception as e:
-        if browser.current_url in PAGES or "oauth2-visaSystem-realm-pkce" in browser.current_url:
+        if (
+            browser.current_url in PAGES
+            or "oauth2-visaSystem-realm-pkce" in browser.current_url
+        ):
             filling_data(browser, wait, args)
         else:
             window.state_lbl.configure(
@@ -109,9 +113,7 @@ def start_program(*args):
 
     try:
         if 1:
-            browser.get(
-                SIGN_IN_PAGE
-            )
+            browser.get(SIGN_IN_PAGE)
             try:
                 wait.until(EC.presence_of_element_located((By.ID, "username")))
             finally:
