@@ -24,6 +24,19 @@ def filling_data(browser, wait, args):
         selected_center = 1 if args[3] == "Cairo" else 0
         wait.until(EC.element_to_be_clickable((By.ID, f"mat-option-{selected_center}")))
         browser.find_element(By.ID, f"mat-option-{selected_center}").click()
+
+        wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "mat-select#mat-select-4"))
+        )
+
+        browser.find_element(By.CSS_SELECTOR, "mat-select#mat-select-4").click()
+
+        services = browser.find_elements(By.CLASS_NAME, "mdc-list-item__primary-text")
+        for service in services:
+            if service.get_attribute("innerText") == "Standard - EGP 1110":
+                service.click()
+                break
+
         browser.find_element(By.CSS_SELECTOR, "mat-select#mat-select-2").click()
         wait.until(
             EC.element_to_be_clickable(
@@ -63,6 +76,12 @@ def filling_data(browser, wait, args):
         window.state_lbl.configure(
             text=render_text("جاري تحميل البيانات..."), text_color=info
         )
+        
+        # CHECK_BOX
+        browser.execute_script(
+            "document.querySelector('#mat-mdc-checkbox-1-input').click()"
+        )
+
         wait.until(
             EC.element_to_be_clickable(
                 (
@@ -71,10 +90,13 @@ def filling_data(browser, wait, args):
                 )
             )
         )
+
+        # SUBMIT_BTN
         browser.find_element(
             By.XPATH,
             "//div[@class='flex flex-col lg:flex-row lg:justify-end']//button[@class='visasys-button w-72 mt-6']",
         ).click()
+
         try:
             wait.until(
                 EC.element_to_be_clickable(
@@ -139,16 +161,18 @@ def start_program(*args):
             filling_data(browser, wait, args)
 
     except Exception as e:
-            browser.quit()
-            if (
+        browser.quit()
+        if (
             browser.current_url in PAGES
             or "oauth2-visaSystem-realm-pkce" in browser.current_url
         ):
-                
-                start_program(browser, wait, args) 
-                window.state_lbl.configure(
-            text=render_text("يوجد خطأ بالموقع حاليا...\nجاري اعادة المحاولة..."), text_color=danger
-        )
-            else:
-                window.state_lbl.configure(
-            text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger)
+
+            start_program(browser, wait, args)
+            window.state_lbl.configure(
+                text=render_text("يوجد خطأ بالموقع حاليا...\nجاري اعادة المحاولة..."),
+                text_color=danger,
+            )
+        else:
+            window.state_lbl.configure(
+                text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger
+            )
