@@ -145,7 +145,7 @@ class Window(CTkFrame):
             pass
 
     def get_time(self):
-        hours, mins = [self.hours_entry.get(), self.minutes_entry.get()]
+        hours, mins = list(map(int, [self.hours_entry.get(), self.minutes_entry.get()]))
         if not (self.validation()):
             return
         if hours > 12 or hours == 0:
@@ -160,9 +160,13 @@ class Window(CTkFrame):
                 message=" برجاء ادخال عدد الساعات بطريقة صحيحة حيث عدد الدقائق ينحصر بين ال 0 الي 59",
             )
             return
+        if hours == 12 and self.time_type.get() == "م":
+            pass
+        else:
+            hours = hours % 12 if self.time_type.get() != "م" else (hours + 12) % 24
         return (
-            int(hours) % 12 if self.time_type.get() != "م" else (int(hours) + 12) % 24,
-            int(mins),
+            hours,
+            mins,
         )
 
     def update_countdown_lbl(self):
