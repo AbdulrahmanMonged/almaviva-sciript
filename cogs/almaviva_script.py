@@ -18,6 +18,9 @@ def filling_data(browser, wait, args):
     try:
         browser.get(APPOINTMENT_PAGE)
         wait.until(
+            EC.invisibility_of_element_located((By.CLASS_NAME, "_ngcontent-bon-c143"))
+        )
+        wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "mat-select#mat-select-0"))
         )
         browser.find_element(By.CSS_SELECTOR, "mat-select#mat-select-0").click()
@@ -66,12 +69,12 @@ def filling_data(browser, wait, args):
             EC.presence_of_element_located(
                 (
                     By.XPATH,
-                    "//input[@placeholder='Indicate the city of your destination']",
+                    "//input[@placeholder='Indicate the first city of entry in Italy']",
                 )
             )
         )
         browser.find_element(
-            By.XPATH, "//input[@placeholder='Indicate the city of your destination']"
+            By.XPATH, "//input[@placeholder='Indicate the first city of entry in Italy']"
         ).send_keys(args[4])
         window.state_lbl.configure(
             text=render_text("جاري تحميل البيانات..."), text_color=info
@@ -107,18 +110,24 @@ def filling_data(browser, wait, args):
                 )
             )
         except:
+            if (
+            browser.current_url in PAGES
+            or "oauth2-visaSystem-realm-pkce" in browser.current_url
+            ):
+                return filling_data(browser, wait, args)
+                
             window.state_lbl.configure(
                 text=render_text("تم انتهاء المهمة..."), text_color=success
             )
             return
         else:
-            filling_data(browser, wait, args)
+            return filling_data(browser, wait, args)
     except Exception as e:
         if (
             browser.current_url in PAGES
             or "oauth2-visaSystem-realm-pkce" in browser.current_url
         ):
-            filling_data(browser, wait, args)
+            return filling_data(browser, wait, args)
         else:
             window.state_lbl.configure(
                 text=render_text("تم انتهاء المهمة..."), text_color=success
@@ -166,11 +175,11 @@ def start_program(*args):
             or "oauth2-visaSystem-realm-pkce" in browser.current_url
         ):  
             browser.quit()
-            start_program(browser, wait, args)
             window.state_lbl.configure(
                 text=render_text("يوجد خطأ بالموقع حاليا...\nجاري اعادة المحاولة..."),
                 text_color=danger,
             )
+            start_program(browser, wait, args)
         else:
             window.state_lbl.configure(
                 text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger
