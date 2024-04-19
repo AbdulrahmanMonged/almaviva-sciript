@@ -6,8 +6,8 @@ from customtkinter import CTk
 from tkinter import messagebox
 from .colors import *
 from awesometkinter.bidirender import render_text
+from .secrets import URI
 
-URI = "postgresql://AbdulrahmanMonged:YdDtzrB46JCU@ep-lucky-tree-44958310.eu-central-1.aws.neon.tech/almaviva_db?sslmode=require"
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 def get_serial_num():

@@ -7827,3 +7827,4 @@ venv/Lib/site-packages/tzdata-2024.1.dist-info/WHEEL
 venv/Scripts/cygdb.exe
 venv/Scripts/cython.exe
 venv/Scripts/cythonize.exe
+cogs/secrets.py
