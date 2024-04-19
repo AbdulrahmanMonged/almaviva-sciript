@@ -7,7 +7,6 @@ import threading
 from .colors import *
 from .Countdown import Countdown
 
-
 class Window(CTkFrame):
     def __init__(self, parent):
         CTkFrame.__init__(self, parent)
@@ -98,18 +97,20 @@ class Window(CTkFrame):
         self.state_lbl.place(relx=0.2, rely=0.6, anchor=CENTER)
         self.start_btn = CTkButton(
             self,
-            text=render_text("بدأ البرنامج"),
+            text=render_text("بدأ بالعد التنازلي"),
             font=CTkFont(family="Segoe UI", size=15),
             command=lambda: self.update_timer(self.get_time()[0], self.get_time()[1]),
         )
         self.start_btn2 = CTkButton(
             self,
-            text=render_text("بدأ البرنامج 2"),
+            text=render_text("بدأ بدون عد تنازلي"),
             font=CTkFont(family="Segoe UI", size=15),
-            command=lambda: self.start_excution(),
+            command=lambda: self.start_excution(int(self.num_of_tabs.get())),
         )
         self.start_btn.place(relx=0.6, rely=0.82, anchor=CENTER)
-        self.start_btn2.place(relx=0.9, rely=0.9, anchor=CENTER)
+        self.start_btn2.place(relx=0.6, rely=0.9, anchor=CENTER)
+        self.num_of_tabs = FloatSpinbox(self, width=100, step_size=1, max=10)
+        self.num_of_tabs.place(relx=0.4, rely=0.9, anchor=CENTER)
         self.stop_btn = CTkButton(
             self,
             text=render_text("ايقاف البرنامج"),
@@ -129,6 +130,8 @@ class Window(CTkFrame):
             self.start_btn,
             self.select_center,
             self.select_destination,
+            self.start_btn2,
+            self.num_of_tabs,
         ]
 
     def update_timer(self, det_h=0, det_min=0):
@@ -139,7 +142,7 @@ class Window(CTkFrame):
             self.update_countdown_lbl()
             self.program = self.after(
                 milliseconds,
-                self.start_excution,
+                lambda: self.start_excution(int(self.num_of_tabs.get())),
             )
             self.label3.configure(
                 text=render_text("الوقت المتبقي حتي يتم تنفيذ البرنامج"),
@@ -185,19 +188,19 @@ class Window(CTkFrame):
         self.label2.configure(text=missing_time)
         self.update_method = self.after(1000, self.update_countdown_lbl)
 
-    def start_excution(self):
-        for _ in range(5):
+    def start_excution(self, num=5):
+        for _ in range(num):
             self.program_thread = threading.Thread(
-                    target=start_program,
-                    args=(
-                        self.email_entry.get(),
-                        self.password_entry.get(),
-                        self.select_trip_date.get(),
-                        self.select_center.get(),
-                        self.select_destination.get(),
-                        self,
-                    ),
-                )
+                target=start_program,
+                args=(
+                    self.email_entry.get(),
+                    self.password_entry.get(),
+                    self.select_trip_date.get(),
+                    self.select_center.get(),
+                    self.select_destination.get(),
+                    self,
+                ),
+            )
             self.process.append(self.program_thread)
             self.program_thread.start()
         if self.update_method:
@@ -214,9 +217,6 @@ class Window(CTkFrame):
         self.enable_components()
 
     def stop_excution(self):
-        if len(self.process):
-            for process in self.process:
-                process.join()
         if self.program:
             self.after_cancel(self.program)
         if self.update_method:
@@ -234,6 +234,7 @@ class Window(CTkFrame):
                 component.configure(state=DISABLED)
             except:
                 component.disable_component()
+        self.stop_btn.configure(state=NORMAL)
 
     def enable_components(self):
         for component in self.components:
@@ -241,6 +242,7 @@ class Window(CTkFrame):
                 component.configure(state=NORMAL)
             except:
                 component.enable_component()
+        self.stop_btn.configure(state=DISABLED)
 
     def validation(self):
         if (
@@ -251,3 +253,4 @@ class Window(CTkFrame):
             messagebox.showerror(title="خطأ", message="برجاء تعبئة جميع الحقول")
             return False
         return True
+
