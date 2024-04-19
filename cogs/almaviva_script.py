@@ -115,7 +115,9 @@ def filling_data(browser, wait, args):
             or "oauth2-visaSystem-realm-pkce" in browser.current_url
             ):
                 return filling_data(browser, wait, args)
-                
+            
+            browser.switch_to.window(browser.current_window_handle)
+            browser.maximize_window()
             window.state_lbl.configure(
                 text=render_text("تم انتهاء المهمة..."), text_color=success
             )
@@ -129,6 +131,8 @@ def filling_data(browser, wait, args):
         ):
             return filling_data(browser, wait, args)
         else:
+            browser.switch_to.window(browser.current_window_handle)
+            browser.maximize_window()
             window.state_lbl.configure(
                 text=render_text("تم انتهاء المهمة..."), text_color=success
             )
@@ -139,7 +143,6 @@ def start_program(*args):
     options.add_experimental_option("detach", True)
     browser = webdriver.Chrome(options=options)
     wait = WebDriverWait(browser, 10)
-    browser.maximize_window()
     window = args[-1]
 
     try:
@@ -179,7 +182,7 @@ def start_program(*args):
                 text=render_text("يوجد خطأ بالموقع حاليا...\nجاري اعادة المحاولة..."),
                 text_color=danger,
             )
-            start_program(browser, wait, args)
+            start_program(*args)
         else:
             window.state_lbl.configure(
                 text=render_text("يوجد خطأ بالموقع حاليا..."), text_color=danger

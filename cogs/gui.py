@@ -3,7 +3,7 @@ from tkinter import messagebox
 from .almaviva_script import start_program
 from .customized_components import FloatSpinbox
 from awesometkinter.bidirender import render_text
-from threading import Thread
+import threading
 from .colors import *
 from .Countdown import Countdown
 
@@ -12,7 +12,7 @@ class Window(CTkFrame):
     def __init__(self, parent):
         CTkFrame.__init__(self, parent)
         self.configure(height=400, width=400)
-
+        self.process = []
         self.program = None
         self.update_method = None
         self.countdown: Countdown = Countdown()
@@ -102,7 +102,14 @@ class Window(CTkFrame):
             font=CTkFont(family="Segoe UI", size=15),
             command=lambda: self.update_timer(self.get_time()[0], self.get_time()[1]),
         )
+        self.start_btn2 = CTkButton(
+            self,
+            text=render_text("بدأ البرنامج 2"),
+            font=CTkFont(family="Segoe UI", size=15),
+            command=lambda: self.start_excution(),
+        )
         self.start_btn.place(relx=0.6, rely=0.82, anchor=CENTER)
+        self.start_btn2.place(relx=0.9, rely=0.9, anchor=CENTER)
         self.stop_btn = CTkButton(
             self,
             text=render_text("ايقاف البرنامج"),
@@ -110,7 +117,6 @@ class Window(CTkFrame):
             command=self.stop_excution,
             fg_color="#FF204E",
             hover_color="#A0153E",
-            state=DISABLED,
         )
         self.stop_btn.place(relx=0.4, rely=0.82, anchor=CENTER)
         self.components = [
@@ -180,18 +186,20 @@ class Window(CTkFrame):
         self.update_method = self.after(1000, self.update_countdown_lbl)
 
     def start_excution(self):
-        self.program_thread = Thread(
-            target=start_program,
-            args=(
-                self.email_entry.get(),
-                self.password_entry.get(),
-                self.select_trip_date.get(),
-                self.select_center.get(),
-                self.select_destination.get(),
-                self,
-            ),
-        )
-        self.program_thread.start()
+        for _ in range(5):
+            self.program_thread = threading.Thread(
+                    target=start_program,
+                    args=(
+                        self.email_entry.get(),
+                        self.password_entry.get(),
+                        self.select_trip_date.get(),
+                        self.select_center.get(),
+                        self.select_destination.get(),
+                        self,
+                    ),
+                )
+            self.process.append(self.program_thread)
+            self.program_thread.start()
         if self.update_method:
             self.after_cancel(self.update_method)
         self.label3.configure(
@@ -206,6 +214,9 @@ class Window(CTkFrame):
         self.enable_components()
 
     def stop_excution(self):
+        if len(self.process):
+            for process in self.process:
+                process.join()
         if self.program:
             self.after_cancel(self.program)
         if self.update_method:
@@ -223,7 +234,6 @@ class Window(CTkFrame):
                 component.configure(state=DISABLED)
             except:
                 component.disable_component()
-        self.stop_btn.configure(state=NORMAL)
 
     def enable_components(self):
         for component in self.components:
@@ -231,7 +241,6 @@ class Window(CTkFrame):
                 component.configure(state=NORMAL)
             except:
                 component.enable_component()
-        self.stop_btn.configure(state=DISABLED)
 
     def validation(self):
         if (
