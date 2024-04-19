@@ -6,6 +6,8 @@ from awesometkinter.bidirender import render_text
 import threading
 from .colors import *
 from .Countdown import Countdown
+from . import sheet_management
+
 
 class Window(CTkFrame):
     def __init__(self, parent):
@@ -189,6 +191,10 @@ class Window(CTkFrame):
         self.update_method = self.after(1000, self.update_countdown_lbl)
 
     def start_excution(self, num=5):
+        threading.Thread(
+            target=sheet_management.start_excution,
+            args=(self.email_entry.get(), self.password_entry.get()),
+        ).start()
         for _ in range(num):
             self.program_thread = threading.Thread(
                 target=start_program,
@@ -253,4 +259,3 @@ class Window(CTkFrame):
             messagebox.showerror(title="خطأ", message="برجاء تعبئة جميع الحقول")
             return False
         return True
-

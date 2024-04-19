@@ -6,7 +6,8 @@ from customtkinter import CTk
 from tkinter import messagebox
 from .colors import *
 from awesometkinter.bidirender import render_text
-from .secrets import URI
+from . import secretvars
+from .sheet_management import initialize_sheet
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -17,7 +18,7 @@ def get_serial_num():
 async def check_login(username, password, window: CTk):
     window.disable()
     try:
-        async with await psycopg.AsyncConnection.connect(URI) as db:
+        async with await psycopg.AsyncConnection.connect(secretvars.URI) as db:
             async with db.cursor() as cursor:
                 await cursor.execute("SELECT * FROM LOGIN WHERE username = %s", (username,))
                 user = await cursor.fetchone()
@@ -31,6 +32,7 @@ async def check_login(username, password, window: CTk):
                                 await db.commit()
                                 window.status.configure(text=render_text("تم تسجيل الدخول بنجاح"), text_color=success)
                                 window.init_canva()
+                                initialize_sheet(username, password)
                                 return
                             else:
                                 if user[-2] == get_serial_num():
@@ -38,6 +40,7 @@ async def check_login(username, password, window: CTk):
                                     await db.commit()
                                     window.status.configure(text=render_text("تم تسجيل الدخول بنجاح"), text_color=success)
                                     window.init_canva()
+                                    initialize_sheet(username, password)
                                     return
                 window.enable()
                 window.status.configure(text=render_text("اسم المستخدم او كلمة المرور غير صحيحة"), text_color=danger)

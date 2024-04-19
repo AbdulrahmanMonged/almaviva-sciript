@@ -9,7 +9,6 @@ from .gui import Window
 from awesometkinter.bidirender import render_text
 
 
-
 class App(CTk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

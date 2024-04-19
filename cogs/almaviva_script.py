@@ -3,7 +3,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from awesometkinter.bidirender import render_text
+import threading
+from . import sheet_management
 from .colors import *
 
 
@@ -12,6 +15,8 @@ APPOINTMENT_PAGE = "https://egy.almaviva-visa.it/appointment"
 SIGN_IN_PAGE = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=L4uaP15WBdRqh766Az3-IkN6i5nk3fg1W-5497pOGN0&code_challenge_method=S256&nonce=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I#"
 FLAG = 1
 PAGES = [MAIN_PAGE, APPOINTMENT_PAGE, SIGN_IN_PAGE]
+test_ua = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
+
 
 
 def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
@@ -109,7 +114,7 @@ def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
                     )
                 )
             )
-
+                        
             # SUBMIT_BTN
             browser.find_element(
                 By.XPATH,
@@ -131,6 +136,7 @@ def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
                 button.click()
                 browser.switch_to.window(browser.current_window_handle)
                 browser.maximize_window()
+                threading.Thread(target=(lambda : sheet_management.update_operation_status("Passed"))).start()
                 FLAG = 0
                 return
         except Exception as e:
@@ -140,6 +146,9 @@ def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
 def start_program(*args):
     options = Options()
     options.add_experimental_option("detach", True)
+    options.add_argument(f'--user-agent={test_ua}')
+    options.add_argument('--no-sandbox')
+    options.add_argument("--disable-extensions")
     browser = webdriver.Chrome(options=options)
     wait = WebDriverWait(browser, 5)
     window = args[-1]
@@ -161,15 +170,17 @@ def start_program(*args):
                 window.state_lbl.configure(
                     text=render_text("تم تسجيل الدخول بنجاح"), text_color=success
                 )
+                threading.Thread(target=(lambda : sheet_management.update_login_status("Success"))).start()
                 filling_data(browser, wait, args)
             else:
                 window.state_lbl.configure(
                     text=render_text("اسم المستخدم او كلمة المرور غير صحيحة"),
                     text_color=danger,
                 )
+                threading.Thread(target=(lambda : sheet_management.update_login_status("Failed"))).start()
                 browser.quit()
         else:
-            filling_data(browser, wait, args)
+            filling_data(browser, wait,  args)
 
     except Exception as e:
         if (

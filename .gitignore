@@ -7828,3 +7828,6 @@ venv/Scripts/cygdb.exe
 venv/Scripts/cython.exe
 venv/Scripts/cythonize.exe
 cogs/secrets.py
+cogs/__pycache__/login_gui.cpython-312.pyc
+cogs/__pycache__/secretvars.cpython-312.pyc
+cogs/__pycache__/sheet_management.cpython-312.pyc
