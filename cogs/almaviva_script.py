@@ -7,15 +7,13 @@ from awesometkinter.bidirender import render_text
 import threading
 from . import sheet_management
 from .colors import *
-
+from .utility import resource_path
 
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
 APPOINTMENT_PAGE = "https://egy.almaviva-visa.it/appointment"
 SIGN_IN_PAGE = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=L4uaP15WBdRqh766Az3-IkN6i5nk3fg1W-5497pOGN0&code_challenge_method=S256&nonce=U2I1T2RhOVFDb3lPRDJ6UWFkM0x1TE1EdkVoVTFvfnF1R0tCNWNmQWN-Yn5I#"
 FLAG = 1
 PAGES = [MAIN_PAGE, APPOINTMENT_PAGE, SIGN_IN_PAGE]
-test_ua = 'Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36'
-
 
 
 def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
@@ -104,21 +102,29 @@ def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
             browser.execute_script(
                 "document.querySelector('#mat-mdc-checkbox-1-input').click()"
             )
-
+            wait._timeout = 100
+            iframe = browser.find_element(By.TAG_NAME, "iframe")
+            browser.switch_to.frame(iframe)
             wait.until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        "//div[@class='flex flex-col lg:flex-row lg:justify-end']//button[@class='visasys-button w-72 mt-6']",
-                    )
+                EC.presence_of_element_located(
+                    (By.CLASS_NAME, "recaptcha-checkbox-checked")
                 )
             )
-                        
+            browser.switch_to.default_content()
+            wait._timeout = 5
+            wait.until(
+                    EC.element_to_be_clickable(
+                        (
+                            By.XPATH,
+                            "//div[@class='flex flex-col lg:flex-row lg:justify-end']//button[@class='visasys-button w-72 mt-6']",
+                        )
+                    )
+                )
             # SUBMIT_BTN
             browser.find_element(
-                By.XPATH,
-                "//div[@class='flex flex-col lg:flex-row lg:justify-end']//button[@class='visasys-button w-72 mt-6']",
-            ).click()
+                    By.XPATH,
+                    "//div[@class='flex flex-col lg:flex-row lg:justify-end']//button[@class='visasys-button w-72 mt-6']",
+                ).click()
             wait.until(
                 EC.element_to_be_clickable(
                     (
@@ -145,9 +151,7 @@ def filling_data(browser: webdriver.Chrome, wait: WebDriverWait, args):
 def start_program(*args):
     options = Options()
     options.add_experimental_option("detach", True)
-    options.add_argument(f'--user-agent={test_ua}')
-    options.add_argument('--no-sandbox')
-    options.add_argument("--disable-extensions")
+    options.add_argument(f"--load-extension={resource_path("extension")}")
     browser = webdriver.Chrome(options=options)
     wait = WebDriverWait(browser, 5)
     window = args[-1]

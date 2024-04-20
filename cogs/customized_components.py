@@ -42,7 +42,7 @@ class FloatSpinbox(customtkinter.CTkFrame):
             command=self.add_button_callback,
         )
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
-        self.entry.insert(0, "0")
+        self.entry.insert(0, str(min))
         self.components = [self.subtract_button, self.entry, self.add_button]
 
     def add_button_callback(self):

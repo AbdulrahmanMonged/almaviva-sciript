@@ -1,6 +1,5 @@
 import sys
 import os
-import subprocess
 
 
 def resource_path(relative_path):

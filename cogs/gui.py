@@ -36,7 +36,7 @@ class Window(CTkFrame):
             font=CTkFont(family="Segoe UI", size=15),
         )
         self.password_lbl.place(relx=0.85, rely=0.32, anchor=E)
-        self.password_entry = CTkEntry(self)
+        self.password_entry = CTkEntry(self, show="*")
         self.password_entry.place(relx=0.5, rely=0.32, anchor=CENTER)
         self.label3 = CTkLabel(self, text="", font=CTkFont(size=20))
         self.label2 = CTkLabel(
@@ -52,7 +52,7 @@ class Window(CTkFrame):
             self, text=render_text("الساعة"), font=CTkFont(family="Segoe UI", size=13)
         )
         self.hours_lbl.place(relx=0.59, rely=0.4, anchor=CENTER)
-        self.hours_entry = FloatSpinbox(self, width=100, step_size=1, max=12)
+        self.hours_entry = FloatSpinbox(self, width=100, step_size=1, min=1,max=12)
         self.hours_entry.place(relx=0.59, rely=0.46, anchor=CENTER)
         self.minutes_lbl = CTkLabel(
             self, text=render_text("الدقيقة"), font=CTkFont(family="Segoe UI", size=13)
@@ -111,15 +111,16 @@ class Window(CTkFrame):
         )
         self.start_btn.place(relx=0.6, rely=0.82, anchor=CENTER)
         self.start_btn2.place(relx=0.6, rely=0.9, anchor=CENTER)
-        self.num_of_tabs = FloatSpinbox(self, width=100, step_size=1, max=10)
+        self.num_of_tabs = FloatSpinbox(self, width=100, step_size=1, min=1 ,max=10)
         self.num_of_tabs.place(relx=0.4, rely=0.9, anchor=CENTER)
         self.stop_btn = CTkButton(
             self,
-            text=render_text("ايقاف البرنامج"),
+            text=render_text("ايقاف العد التنازلي"),
             font=CTkFont(family="Segoe UI", size=15),
             command=self.stop_excution,
             fg_color="#FF204E",
             hover_color="#A0153E",
+            state=DISABLED
         )
         self.stop_btn.place(relx=0.4, rely=0.82, anchor=CENTER)
         self.components = [
