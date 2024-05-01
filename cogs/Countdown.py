@@ -22,9 +22,9 @@ class Countdown:
         ) - (current_date + timedelta(days=1))
         return next_date.seconds * 1000
 
-    def get_days_in_month(self):
-        current_day = datetime.now()
-        next_month = current_day.replace(month=current_day.month + 1)
-        return list(
-            map(str, range(current_day.day, (next_month - current_day).days + 1))
-        )
+    def get_remaining_seconds(self):
+        current_date = datetime.now()
+        next_date = current_date.replace(
+            hour=self.det_h, minute=self.det_min, second=0
+        ) - (current_date + timedelta(days=1))
+        return next_date.seconds

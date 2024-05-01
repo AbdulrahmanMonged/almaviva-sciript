@@ -5,9 +5,10 @@ import asyncio
 from .utility import resource_path
 from threading import Thread
 from tkinter import messagebox
-from .gui import Window
 from awesometkinter.bidirender import render_text
-
+from . import secretvars
+from .sheet_management import initialize_sheet
+from . import gui
 
 class App(CTk):
     def __init__(self, *args, **kwargs):
@@ -35,8 +36,9 @@ class App(CTk):
 
         self.status = CTkLabel(self, text="", font=CTkFont(family="Segoe UI", size=15))
         self.status.place(relx=0.5, rely=0.1, anchor=CENTER)
+        self.bind("<Return>", self.submit)
 
-    def submit(self):
+    def submit(self, event=None):
         if self.validation():
             self.disable()
             self.status.configure(text=render_text("جاري التحقق"), text_color=info)
@@ -47,6 +49,7 @@ class App(CTk):
                     )
                 )
             )
+            secretvars.Thread_Pool.append(thread)
             thread.start()
 
     def validation(self):
@@ -61,18 +64,31 @@ class App(CTk):
         self.submit_btn.configure(state="disabled")
 
     def enable(self):
-        self.username_entry.configure(state="normal")
-        self.password_entry.configure(state="normal")
-        self.submit_btn.configure(state="normal")
+        try:
+            self.username_entry.configure(state="normal")
+            self.password_entry.configure(state="normal")
+            self.submit_btn.configure(state="normal")
+        except:
+            pass
 
     def destroy_login(self):
-        for child in self.winfo_children():
-            child.destroy()
+        try:
+            sheet = Thread(
+                target=initialize_sheet,
+                args=(self.username_entry.get(), self.password_entry.get()),
+            )
+            secretvars.Thread_Pool.append(sheet)
+            sheet.start()
+            for child in self.winfo_children():
+                child.destroy()
+        except Exception as e:
+            pass
 
     def init_canva(self):
+        self.bind("<Return>", lambda e: "break")
         self.destroy_login()
-        frame = Window(self)
-        frame.grid(sticky="nsew")
         self.geometry("720x480")
+        frame = gui.App2(self)
+        frame.pack(side="top", fill="both", expand=True)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)

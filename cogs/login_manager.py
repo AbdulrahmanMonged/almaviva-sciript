@@ -7,10 +7,8 @@ from tkinter import messagebox
 from .colors import *
 from awesometkinter.bidirender import render_text
 from . import secretvars
-from .sheet_management import initialize_sheet
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 
 def get_serial_num():
     result = subprocess.run(
@@ -20,7 +18,6 @@ def get_serial_num():
 
 
 async def check_login(username, password, window: CTk):
-    window.disable()
     try:
         async with await psycopg.AsyncConnection.connect(secretvars.URI) as db:
             async with db.cursor() as cursor:
@@ -52,7 +49,6 @@ async def check_login(username, password, window: CTk):
                                     text_color=success,
                                 )
                                 window.init_canva()
-                                initialize_sheet(username, password)
                                 return
                             else:
                                 if user[-2] == get_serial_num():
@@ -66,7 +62,6 @@ async def check_login(username, password, window: CTk):
                                         text_color=success,
                                     )
                                     window.init_canva()
-                                    initialize_sheet(username, password)
                                     return
                 window.enable()
                 window.status.configure(
