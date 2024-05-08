@@ -1,8 +1,3 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
 import threading
 import requests
@@ -12,7 +7,9 @@ from .Document import Document
 from .colors import *
 from customtkinter import CTkInputDialog
 from .Countdown import Countdown
+from .Authenticator import Authenticator
 from .sheet_management import *
+import webbrowser
 
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
@@ -28,15 +25,13 @@ class Bot:
         self.recaptcha = ""
         self.otp = ""
         self.slots = []
-        self.thread_evenet = threading.Event()
         self.session = requests.Session()
         self.driver = None
-        self.token_thread = threading.Thread(target=self.get_token)
         self.main_thread_flag = 1
         self.username = ""
         self.password = ""
         self.curr_token = ""
-        self.visa_id = 20
+        self.visa_id = 3
         self.count = 0
         self.account_index = 0
 
@@ -45,13 +40,15 @@ class Bot:
         self.applicant = applicant
 
     def change_account(self):
+        self.token = ""
         self.window.print_in_log("جاري تغيير الحساب...", color=warning)
         self.count = 0
-        self.account_index = (self.account_index + 1) % len(self.applicants)
-        self.username = self.applicants[self.account_index][0]
-        self.password = self.applicants[self.account_index][1]
+        self.account_index = (self.account_index + 1) % len(self.accounts)
+        self.username = self.accounts[self.account_index][0]
+        self.password = self.accounts[self.account_index][1]
         self.window.print_in_log("تم تغيير الحساب", color=success)
-        self.driver.close()
+        wait = CTkInputDialog(text="Waiting until you change VPN", title="WAIT")
+        wait.get_input()
         self.login()
 
     def send_otp(self):
@@ -72,7 +69,6 @@ class Bot:
             }
             data = {}
             response = self.session.post(api_url, headers=headers, json=data)
-
         except Exception as e:
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
 
@@ -120,27 +116,10 @@ class Bot:
         except Exception as e:
             self.window.print_in_log("يوجد خطأ في الكابتشا...", color=danger)
 
-    def get_token(self):
-        try:
-            while not (self.thread_evenet.is_set()):
-                self.driver.refresh()
-                self.token = self.driver.execute_script(
-                    "return window.sessionStorage.getItem('access_token');"
-                )
-                time.sleep(5)
-                if not (self.token):
-                    self.driver.get(MAIN_PAGE)
-                if self.token:
-                    if self.token != self.curr_token:
-                        return
-                    self.curr_token = self.token
-        except Exception as e:
-            print(e)
-            pass
 
     def get_available_slots(self):
         try:
-            self.window.print_in_log("جاري الحصول على المواعيد...", color=warning)
+            self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
             api_url = "https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId=1&quantity=1&date=2024-05-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
@@ -159,9 +138,10 @@ class Bot:
             }
             response = self.session.get(api_url, headers=headers)
             self.slots = response.json()
+            self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
         except Exception as e:
             self.window.print_in_log(
-                "يوجد خطأ في الحصول على المواعيد... جاري اعادة المحاولة", color=danger
+                "يوجد خطأ في الحصول علي اماكن للحجز", color=danger
             )
 
     def check_for_availabilty(self):
@@ -184,18 +164,28 @@ class Bot:
                 "Sec-Fetch-Site": "same-site",
             }
             response = self.session.get(api_url, headers=headers)
-            self.count += 1
-            if self.count == 20:
-                self.change_account()
-                return False
+            if response.json() and response.status_code == 200:
+                self.window.print_in_log(
+                    "يوجد مواعيد للحجز!", color=success
+                )
+            else:
+                self.window.print_in_log(
+                    "لا يوجد مواعيد للحجز حاليا... جاري المحاولة", color=danger
+                )
             if response.status_code == 429:
                 self.window.print_in_log(
-                    "تم تخطي عدد المرات المسموح بها للكشف علي المواعيد جاري انتظر ربع ساعة ثم سيتم اكمال المهمة مرة اخري"
+                    "تم الوصول للحد الاقصي من المحاولات.. البرنامج سيتوقف", color=danger
                 )
-                time.sleep(60 * 15)
+                self.main_thread_flag = 0
                 return False
             return response.json()
         except Exception as e:
+            if response.status_code == 429:
+                self.window.print_in_log(
+                    "تم الوصول للحد الاقصي من المحاولات.. البرنامج سيتوقف", color=danger
+                )
+                self.main_thread_flag = 0
+                return False
             self.window.print_in_log(
                 "يوجد خطأ في التحقق من المواعيد... جاري اعادة المحاولة", color=danger
             )
@@ -228,31 +218,13 @@ class Bot:
         self.window.print_in_log("تم تحميل بيانات الحساب", color=success)
         self.applicant.set_new_data(data)
 
-    def init_driver(self):
-        self.window.print_in_log("جاري تشغيل التطبيق", color=warning)
-        option = Options()
-        option.add_experimental_option("detach", True)
-        self.driver = webdriver.Chrome(options=option)
 
     def login(self):
-        try:
-            self.driver.get(SIGN_IN_URL)
-            self.window.print_in_log("جاري تسجيل الدخول", color=warning)
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "username"))
-            )
-            self.driver.find_element(By.ID, "username").send_keys(self.username)
-            self.driver.find_element(By.ID, "password").send_keys(self.password)
-            self.driver.find_element(By.ID, "kc-login").click()
-            self.window.print_in_log("تم تسجيل الدخول", color=success)
-            threading.Thread(target=update_login_status, args=("Success",)).start()
-        except Exception as e:
-            self.window.print_in_log(
-                "يوجد خطأ في تسجيل الدخول... جاري اعادة المحاولة", color=danger
-            )
-            self.driver.close()
-            self.login()
-
+        self.window.print_in_log("جاري تسجيل الدخول...", color=warning)
+        auth = Authenticator(window=self.window)
+        self.token = auth.login_and_get_token(self.username, self.password)
+        
+        
     def upload_documents(self):
         self.window.print_in_log("جاري تحميل المستندات...", color=warning)
         for doc in self.documents:
@@ -266,23 +238,19 @@ class Bot:
             while self.main_thread_flag:
                 self.username = self.accounts[self.account_index][0]
                 self.password = self.accounts[self.account_index][1]
-                self.init_driver()
+                self.window.print_in_log(
+                    "البرنامج سيبدا الساعة التاسعة صباحا.", color=warning
+                )
+                time.sleep(Countdown(8, 59, 57).get_remaining_seconds())
                 self.login()
-                self.token_thread.start()
-                while not (self.curr_token):
+                while not(self.check_for_availabilty()):
+                    time.sleep(1)
+                    if self.main_thread_flag == 0:
+                        break
                     pass
-                print("TOKEN")
+                if self.main_thread_flag == 0:
+                    break
                 self.upload_documents()
-                countdown = Countdown(9, 0)
-                # if countdown.get_remaining_seconds() < 60 * 60 * 19:
-                #     self.window.print_in_log("البرنامج سيبدأ الساعة 9 صباحا...", color=warning)
-                #     time.sleep(countdown.get_remaining_seconds())
-                while not (self.check_for_availabilty()):
-                    self.window.print_in_log(
-                        "لا يوجد مواعيد متاحة... جاري اعادة المحاولة", color=danger
-                    )
-                    time.sleep(5)
-                self.window.print_in_log("يوجد مواعيد متاحة", color=success)
                 self.get_available_slots()
                 self.send_otp()
                 self.applicant.set_bot(self)
@@ -323,13 +291,13 @@ class Bot:
                         ).start()
                         self.window.print_in_log("تم الحجز بنجاح", color=success)
                         session_id = response.json()["sessionId"]
-                        self.driver.get(
+                        webbrowser.open(
                             f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0"
                         )
                         self.window.print_in_log("رابط بوابة الدفع", color=success)
                         self.window.print_in_log(
                             f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0"
-                        )
+                        ,color=success, url=f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0")
                         self.window.print_in_log("تم انتهاء المهمة بنجاح...", color=success)
                         threading.Thread(
                             target=payment_gate_link,
@@ -337,10 +305,8 @@ class Bot:
                                 f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0",
                             ),
                         ).start()
-                        self.thread_evenet.set()
                         self.main_thread_flag = 0
                         self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
-                        self.token_thread.join()
                         break
         except Exception as e:
             print(e)

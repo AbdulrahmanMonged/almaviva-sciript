@@ -7,6 +7,7 @@ from datetime import datetime
 from .colors import *
 from .almaviva_script import Bot
 from threading import Thread
+import webbrowser
 
 
 class App2(CTkFrame):
@@ -15,16 +16,14 @@ class App2(CTkFrame):
         self.labels = []
         self.applicant = None
         self.applicants = []
-        # self.documents = {
-        #     "nulla": [None, 187],
-        #     "passport": [None, 100],
-        #     "phoneNumber": [None, 188],
-        # }
-        self.documents = {"passport": [None, 100]}
         self.bot = None
         self.start_delay = None
-        self.toplevel_window = None
-
+        self.visa_id = 3
+        self.documents = {"passport": [None, 100]} if self.visa_id == 20 else {
+            "nulla": [None, 187],
+            "passport": [None, 100],
+            "phoneNumber": [None, 188],
+        }
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
@@ -278,7 +277,6 @@ class App2(CTkFrame):
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
         )
         #############################################################################
-
         self.home_frame.grid_rowconfigure(3, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(3, weight=1)
@@ -369,7 +367,7 @@ class App2(CTkFrame):
             "passportDateOfIssue": "",
             "passportDateOfExpiry": "",
             "gender": "M" if self.gender_entry.get() == "ذكر" else "F",
-            "visa_id": "20",
+            "visa_id": str(self.visa_id),
         }
         selected_data = []
         for child in self.second_frame.winfo_children():
@@ -426,7 +424,7 @@ class App2(CTkFrame):
                 self.phonenum_img_state.configure(
                     text=file_path.split("/")[-1], text_color=success
                 )
-    def print_in_log(self, text, color=info):
+    def print_in_log(self, text, color=info, url=""):
         current_time = datetime.now().strftime("%H:%M:%S")
         label = CTkLabel(
             self.fifth_frame,
@@ -436,6 +434,9 @@ class App2(CTkFrame):
         )
         label.grid(row=len(self.labels), column=0, sticky="e", padx=0, pady=0)
         self.labels.append(label)
+        if url:
+            label.configure(cursor="hand2")
+            label.bind("<Button-1>", lambda e: webbrowser.open(url))
 
     def save_img_data(self):
         for key in self.documents:
@@ -481,7 +482,6 @@ class App2(CTkFrame):
         bot_thread = Thread(target=self.bot.start_booking)
         bot_thread.start()
         self.select_frame_by_name("frame_5")
-        3
 
     def validate_all_fields(self):
         if len(self.applicants) == 0:
