@@ -9,6 +9,7 @@ from .almaviva_script import Bot
 from threading import Thread
 import webbrowser
 from .Countdown import Countdown
+from . import secretvars
 
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
@@ -484,9 +485,9 @@ class App2(CTkFrame):
     def start_execution(self):
         if not (self.validate_all_fields()):
             return
-        # countdown = Countdown(8, 59, 57)
-        # self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
-        # self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
+        countdown = Countdown(9, 59, 57)
+        self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
+        self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
         self.bot_excution()
         self.select_frame_by_name("frame_5")
         
@@ -498,6 +499,7 @@ class App2(CTkFrame):
             self.bot.username = account[0]
             self.bot.password = account[1]
             bot_thread = Thread(target=self.bot.start_booking)
+            secretvars.Thread_Pool.append(bot_thread)
             bot_thread.start()
 
 

@@ -37,6 +37,7 @@ class App(CTk):
         self.status = CTkLabel(self, text="", font=CTkFont(family="Segoe UI", size=15))
         self.status.place(relx=0.5, rely=0.1, anchor=CENTER)
         self.bind("<Return>", self.submit)
+        
 
     def submit(self, event=None):
         if self.validation():

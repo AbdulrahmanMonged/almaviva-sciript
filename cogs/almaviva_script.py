@@ -122,7 +122,7 @@ class Bot:
     def get_available_slots(self):
         try:
             self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
-            api_url = "https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId=1&quantity=1&date=2024-05-30&type=WEB"
+            api_url = "https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId=1&quantity=1&date=2024-06-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -227,7 +227,7 @@ class Bot:
         self.window.print_in_log("جاري تحميل المستندات...", color=warning)
         for doc in self.documents:
             document = Document(self.documents[doc][1], self.documents[doc][0])
-            document.upload_document(self.token, proxies=self.proxy)
+            document.upload_document(self.token, proxy=self.proxy)
             self.applicant.add_document(document)
         self.window.print_in_log("تم تحميل المستندات", color=success)
 
@@ -261,7 +261,7 @@ class Bot:
 
                     body = {
                         "officeId": 1,
-                        "tripDate": "2024-05-30",
+                        "tripDate": "2024-06-30",
                         "tripDestination": "roma",
                         "termandcond": True,
                         "idServiceLevel": 1,
