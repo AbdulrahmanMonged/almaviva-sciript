@@ -49,7 +49,7 @@ class Document:
         except Exception as e:
             pass
 
-    def send_presigned_url_request(self, token):
+    def send_presigned_url_request(self, token, proxy):
         try:
             api_url = "https://egyapi.almaviva-visa.it/reservation-manager//api/documents/v1/upload-presigned-url"
             headers = {
@@ -59,7 +59,7 @@ class Document:
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             }
             data = self.get_presigned_url_json()
-            response = requests.post(api_url, headers=headers, json=data)
+            response = requests.post(api_url, headers=headers, json=data, proxies=proxy)
             if response and response.status_code in [200, 201, 202, 203, 204]:
                 self.set_presigned_url(response.json()["presignedUrl"])
                 self.set_temporary_key(response.json()["temporaryKey"])
@@ -86,11 +86,11 @@ class Document:
         except Exception as e:
             return False
 
-    def upload_document(self, token):
+    def upload_document(self, token, proxy):
         try:
             count = 0
             while not self.presignedUrl and count < 3:
-                self.send_presigned_url_request(token)
+                self.send_presigned_url_request(token, proxy)
                 count += 1
             if not self.presignedUrl:
                 return False

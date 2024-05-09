@@ -8,7 +8,7 @@ from .colors import *
 from .almaviva_script import Bot
 from threading import Thread
 import webbrowser
-
+from .Countdown import Countdown
 
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
@@ -140,6 +140,9 @@ class App2(CTkFrame):
                 self.username_entry.get(), self.password_entry.get()
             ),
         )
+        self.save_password_check = StringVar(value="on")
+        self.save_password = CTkCheckBox(self.home_frame, text=render_text("حفظ كلمة المرور"), variable=self.save_password_check, onvalue="on", offvalue="off")
+        self.save_password.grid(row=2, column=0, sticky="s", padx=5, pady=5)
         self.add_applicant_btn.grid(row=2, column=1, sticky="s", padx=5, pady=5)
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -353,7 +356,8 @@ class App2(CTkFrame):
         self.applicants.append(account_test)
         self.print_in_log(f"تم حفظ {account_name} بنجاح", color=info)
         self.username_entry.delete(0, "end")
-        self.password_entry.delete(0, "end")
+        if self.save_password_check.get() == "off":
+            self.password_entry.delete(0, "end")
         self.username_entry.focus()
 
     def get_data(self):
@@ -392,7 +396,9 @@ class App2(CTkFrame):
 
     def enable_applcant_data(self):
         for child in self.second_frame.winfo_children():
-            if isinstance(child, CTkEntry) or isinstance(child, CTkButton):
+            if isinstance(child, CTkEntry) or isinstance(child, CTkButton) or isinstance(
+                child, CTkOptionMenu
+            ):
                 child.configure(state="normal")
         self.applicant_edit_btn.configure(state="disabled")
 
@@ -471,17 +477,29 @@ class App2(CTkFrame):
     def stop_execution(self):
         self.after_cancel(self.start_delay)
         self.print_in_log("تم ايقاف البرنامج", color=warning)
+        self.enable_applcant_data()
+        self.enbale_home_data()
+        self.edit_img_data()
 
     def start_execution(self):
         if not (self.validate_all_fields()):
             return
+        # countdown = Countdown(8, 59, 57)
+        # self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
+        # self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
+        self.bot_excution()
+        self.select_frame_by_name("frame_5")
+        
+    def bot_excution(self):
         self.save_img_data()
         self.get_data()
-        self.bot = Bot(self, self.applicant, self.documents)
-        self.bot.accounts = self.get_all_applicants()
-        bot_thread = Thread(target=self.bot.start_booking)
-        bot_thread.start()
-        self.select_frame_by_name("frame_5")
+        for account in self.get_all_applicants():
+            self.bot = Bot(self, self.applicant, self.documents)
+            self.bot.username = account[0]
+            self.bot.password = account[1]
+            bot_thread = Thread(target=self.bot.start_booking)
+            bot_thread.start()
+
 
     def validate_all_fields(self):
         if len(self.applicants) == 0:

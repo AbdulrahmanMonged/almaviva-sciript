@@ -29,3 +29,6 @@ class Countdown:
             hour=self.det_h, minute=self.det_min, second=self.det_sec
         ) - (current_date + timedelta(days=1))
         return next_date.seconds
+    def __repr__(self) -> str:
+        return f"{self.det_h}:{self.det_min}:{self.det_sec}"
+

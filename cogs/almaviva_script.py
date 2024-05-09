@@ -6,11 +6,11 @@ import json
 from .Document import Document
 from .colors import *
 from customtkinter import CTkInputDialog
-from .Countdown import Countdown
 from .Authenticator import Authenticator
 from .sheet_management import *
-import webbrowser
-
+import webbrowser 
+from .utility import rotate_proxy
+from . import secretvars
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
 capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
@@ -34,6 +34,8 @@ class Bot:
         self.visa_id = 3
         self.count = 0
         self.account_index = 0
+        self.attempts = 0
+        self.proxy = rotate_proxy()
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -68,7 +70,7 @@ class Bot:
                 "sec-ch-ua-platform": "Windows",
             }
             data = {}
-            response = self.session.post(api_url, headers=headers, json=data)
+            response = self.session.post(api_url, headers=headers, json=data, proxies=self.proxy)
         except Exception as e:
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
 
@@ -95,7 +97,7 @@ class Bot:
                 "sec-ch-ua-platform": "Windows",
             }
             data = {}
-            response = self.session.post(api_url, headers=headers, json=data)
+            response = self.session.post(api_url, headers=headers, json=data, proxies=self.proxy)
             if response.status_code == 200:
                 self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
         except Exception as e:
@@ -136,7 +138,7 @@ class Bot:
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": "Windows",
             }
-            response = self.session.get(api_url, headers=headers)
+            response = self.session.get(api_url, headers=headers, proxies=self.proxy)
             self.slots = response.json()
             self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
         except Exception as e:
@@ -146,7 +148,7 @@ class Bot:
 
     def check_for_availabilty(self):
         try:
-            self.window.print_in_log(("جاري التحقق من المواعيد..."), color=warning)
+            self.window.print_in_log((f"جاري التحقق من المواعيد... للحساب {self.username}"), color=warning)
             api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId=1&visaId={self.visa_id}&serviceLevelId=1"
             headers = {
                 "Accept": "application/json, text/plain, */*",
@@ -163,31 +165,28 @@ class Bot:
                 "Sec-Fetch-Mode": "cors",
                 "Sec-Fetch-Site": "same-site",
             }
-            response = self.session.get(api_url, headers=headers)
-            if response.json() and response.status_code == 200:
-                self.window.print_in_log(
-                    "يوجد مواعيد للحجز!", color=success
-                )
-            else:
-                self.window.print_in_log(
-                    "لا يوجد مواعيد للحجز حاليا... جاري المحاولة", color=danger
+            response = self.session.get(api_url, headers=headers, proxies=self.proxy)
+            if response.status_code == 200:
+                if response.json():
+                    self.window.print_in_log(
+                        f"يوجد مواعيد للحجز!..للحساب {self.username}", color=success
+                    )
+                else:
+                    self.attempts += 1
+                    self.window.print_in_log(
+                    f"لا يوجد مواعيد للحجز حاليا... جاري المحاولة... للحساب {self.username} .. المحاولة رقم {self.attempts}", color=danger
                 )
             if response.status_code == 429:
                 self.window.print_in_log(
-                    "تم الوصول للحد الاقصي من المحاولات.. البرنامج سيتوقف", color=danger
+                    f"تم الوصول للحد الاقصي من المحاولات.. البرنامج سيتوقف...للحساب {self.username}", color=danger
                 )
                 self.main_thread_flag = 0
                 return False
             return response.json()
         except Exception as e:
-            if response.status_code == 429:
-                self.window.print_in_log(
-                    "تم الوصول للحد الاقصي من المحاولات.. البرنامج سيتوقف", color=danger
-                )
-                self.main_thread_flag = 0
-                return False
+            print(e)
             self.window.print_in_log(
-                "يوجد خطأ في التحقق من المواعيد... جاري اعادة المحاولة", color=danger
+                f"يوجد خطأ في التحقق من المواعيد... جاري اعادة المحاولة... للحساب {self.username}", color=danger
             )
             return False
 
@@ -208,7 +207,7 @@ class Bot:
             "Sec-Fetch-Site": "same-site",
         }
         self.window.print_in_log("جاري تحميل بيانات الحساب", color=warning)
-        response = self.session.get(api_url, headers=headers)
+        response = self.session.get(api_url, headers=headers, proxies=self.proxy)
         data = {
             "name": response.json()["given_name"],
             "family_name": response.json()["family_name"],
@@ -221,34 +220,27 @@ class Bot:
 
     def login(self):
         self.window.print_in_log("جاري تسجيل الدخول...", color=warning)
-        auth = Authenticator(window=self.window)
+        auth = Authenticator(window=self.window, proxies=self.proxy)
         self.token = auth.login_and_get_token(self.username, self.password)
-        
         
     def upload_documents(self):
         self.window.print_in_log("جاري تحميل المستندات...", color=warning)
         for doc in self.documents:
             document = Document(self.documents[doc][1], self.documents[doc][0])
-            document.upload_document(self.token)
+            document.upload_document(self.token, proxies=self.proxy)
             self.applicant.add_document(document)
         self.window.print_in_log("تم تحميل المستندات", color=success)
 
     def start_booking(self):
         try:
             while self.main_thread_flag:
-                self.username = self.accounts[self.account_index][0]
-                self.password = self.accounts[self.account_index][1]
-                self.window.print_in_log(
-                    "البرنامج سيبدا الساعة التاسعة صباحا.", color=warning
-                )
-                time.sleep(Countdown(8, 59, 57).get_remaining_seconds())
                 self.login()
                 while not(self.check_for_availabilty()):
-                    time.sleep(1)
-                    if self.main_thread_flag == 0:
+                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                         break
                     pass
-                if self.main_thread_flag == 0:
+                if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                    self.window.print_in_log(f"تم توقف البرنامج للحساب... {self.username}", color=success)
                     break
                 self.upload_documents()
                 self.get_available_slots()
@@ -279,7 +271,7 @@ class Bot:
                         "otp": self.otp,
                     }
                     URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
-                    response = self.session.post(URL, headers=headers, data=json.dumps(body))
+                    response = self.session.post(URL, headers=headers, data=json.dumps(body), proxies=self.proxy)
                     self.window.print_in_log("جاري الحجز...", color=warning)
                     time.sleep(1)
                     if response.status_code == 201:
@@ -306,6 +298,7 @@ class Bot:
                             ),
                         ).start()
                         self.main_thread_flag = 0
+                        secretvars.MAIN_FLAG == 0
                         self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
                         break
         except Exception as e:
