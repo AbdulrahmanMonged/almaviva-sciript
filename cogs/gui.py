@@ -10,10 +10,13 @@ from threading import Thread
 import webbrowser
 from .Countdown import Countdown
 from . import secretvars
+from .FloatSpinbox import FloatSpinbox
+import tkinter as tk
 
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
+        
         self.labels = []
         self.applicant = None
         self.applicants = []
@@ -27,7 +30,9 @@ class App2(CTkFrame):
         }
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-
+        self.option_add("*Label*Font", ("Helvetica", 32))
+        self.option_add("*Label*padX", 5)
+        self.option_add("*Label*padY", 5)
         self.navigation_frame = CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, sticky="nsew")
         self.navigation_frame.grid_rowconfigure(6, weight=1)
@@ -141,21 +146,35 @@ class App2(CTkFrame):
                 self.username_entry.get(), self.password_entry.get()
             ),
         )
+       
         self.save_password_check = StringVar(value="on")
+        self.start_with_timer_check = StringVar(value="on")
         self.save_password = CTkCheckBox(self.home_frame, text=render_text("حفظ كلمة المرور"), variable=self.save_password_check, onvalue="on", offvalue="off")
         self.save_password.grid(row=2, column=0, sticky="s", padx=5, pady=5)
+        
+        self.start_with_timer_lbl = CTkLabel(self.home_frame, text=render_text("بدء الساعة التاسعة صباحا"))
+        self.start_with_timer_lbl.grid(row=3, column=2, sticky="s", padx=5, pady=5)
+        self.start_with_timer_switch = CTkSwitch(self.home_frame, text="",variable=self.start_with_timer_check, onvalue="on", offvalue="off")
+        self.start_with_timer_switch.grid(row=3, column=1, sticky="s", padx=5, pady=5)
+        
+        self.delay_lbl = CTkLabel(self.home_frame, text=render_text("التوقيت بين كل ضغطة وضعطة"))
+        self.delay_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
+        self.delay_select = FloatSpinbox(self.home_frame, max=900)
+        self.delay_select.grid(row=4, column=1, sticky="s", padx=5, pady=5)
+        
         self.add_applicant_btn.grid(row=2, column=1, sticky="s", padx=5, pady=5)
         self.start_program_button = CTkButton(
             self.home_frame,
             text=render_text("بدا البرنامج"),
             command=self.start_execution,
         )
-        self.start_program_button.grid(row=3, column=2, sticky="s", padx=5, pady=5)
+        self.start_program_button.grid(row=5, column=2, sticky="s", padx=5, pady=5)
         self.home_disable_btn = CTkButton(
             self.home_frame,
             text=render_text("تعطيل البرنامج"),
+            command=self.stop_execution,
         )
-        self.home_disable_btn.grid(row=3, column=0, sticky="s", padx=5, pady=5)
+        self.home_disable_btn.grid(row=5, column=0, sticky="s", padx=5, pady=5)
 
         #############################  ACCOUNT_INFORMATION ######################################
         self.birthdate_lbl = CTkLabel(
@@ -281,9 +300,17 @@ class App2(CTkFrame):
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
         )
         #############################################################################
-        self.home_frame.grid_rowconfigure(3, weight=1)
+        
+        self.home_frame.grid_rowconfigure(5, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(3, weight=1)
+        
+        #############################################################################
+        
+        for frame in (self.home_frame, self.second_frame):
+            for child in frame.winfo_children():
+                if isinstance(child, CTkEntry):
+                    child.bind("<Button-3>", self.right_click_event)
 
     def select_frame_by_name(self, name):
         self.home_button.configure(
@@ -444,6 +471,7 @@ class App2(CTkFrame):
         if url:
             label.configure(cursor="hand2")
             label.bind("<Button-1>", lambda e: webbrowser.open(url))
+        self.fifth_frame.after(10, self.fifth_frame._parent_canvas.yview_moveto, 1.0)
 
     def save_img_data(self):
         for key in self.documents:
@@ -476,31 +504,42 @@ class App2(CTkFrame):
         self.home_disable_btn.configure(state="disabled")
 
     def stop_execution(self):
-        self.after_cancel(self.start_delay)
-        self.print_in_log("تم ايقاف البرنامج", color=warning)
-        self.enable_applcant_data()
-        self.enbale_home_data()
-        self.edit_img_data()
+        try:
+            self.after_cancel(self.start_delay)
+        finally:
+            self.print_in_log("تم ايقاف البرنامج", color=warning)
+            self.enable_applcant_data()
+            self.enbale_home_data()
+            self.edit_img_data()
+            secretvars.MAIN_FLAG = 0
 
     def start_execution(self):
+        self.enbale_home_data
         if not (self.validate_all_fields()):
             return
-        countdown = Countdown(9, 59, 57)
-        self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
-        self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
-        self.bot_excution()
+        if self.start_with_timer_check.get() == "on":
+            countdown = Countdown(8, 59, 57)
+            self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
+            self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
+        else:
+            self.bot_excution()
         self.select_frame_by_name("frame_5")
         
     def bot_excution(self):
+        secretvars.MAIN_FLAG = 1
         self.save_img_data()
         self.get_data()
-        for account in self.get_all_applicants():
-            self.bot = Bot(self, self.applicant, self.documents)
-            self.bot.username = account[0]
-            self.bot.password = account[1]
-            bot_thread = Thread(target=self.bot.start_booking)
-            secretvars.Thread_Pool.append(bot_thread)
-            bot_thread.start()
+        self.bot = Bot(self, self.applicant, self.documents, self.delay_select.get())
+        self.bot.accounts = self.get_all_applicants()
+        bot_thread = Thread(target=self.bot.start_booking)
+        secretvars.Thread_Pool.append(bot_thread)
+        bot_thread.start()
+    
+    def right_click_event(self, event):
+        clipboard_content = event.widget.clipboard_get()
+        processed_content = clipboard_content.strip() 
+        event.widget.insert('insert', processed_content)
+        return 'break'
 
 
     def validate_all_fields(self):

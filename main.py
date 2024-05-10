@@ -4,6 +4,7 @@ from cogs import secretvars
 app = App()
 app.mainloop()
 
+secretvars.MAIN_FLAG = 0
 if len(secretvars.Thread_Pool):
     for i in secretvars.Thread_Pool:
         print("Thread Terminated")

@@ -10,6 +10,7 @@ from . import secretvars
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+
 def get_serial_num():
     result = subprocess.run(
         ["Wmic", "bios", "get", "serialnumber"], capture_output=True, text=True
