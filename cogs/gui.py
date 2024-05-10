@@ -13,21 +13,26 @@ from . import secretvars
 from .FloatSpinbox import FloatSpinbox
 import tkinter as tk
 
+
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
-        
+
         self.labels = []
         self.applicant = None
         self.applicants = []
         self.bot = None
         self.start_delay = None
         self.visa_id = 3
-        self.documents = {"passport": [None, 100]} if self.visa_id == 20 else {
-            "nulla": [None, 187],
-            "passport": [None, 100],
-            "phoneNumber": [None, 188],
-        }
+        self.documents = (
+            {"passport": [None, 100]}
+            if self.visa_id != 3
+            else {
+                "nulla": [None, 187],
+                "passport": [None, 100],
+                "phoneNumber": [None, 188],
+            }
+        )
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.option_add("*Label*Font", ("Helvetica", 32))
@@ -146,22 +151,38 @@ class App2(CTkFrame):
                 self.username_entry.get(), self.password_entry.get()
             ),
         )
-       
+
         self.save_password_check = StringVar(value="on")
         self.start_with_timer_check = StringVar(value="on")
-        self.save_password = CTkCheckBox(self.home_frame, text=render_text("حفظ كلمة المرور"), variable=self.save_password_check, onvalue="on", offvalue="off")
+        self.save_password = CTkCheckBox(
+            self.home_frame,
+            text=render_text("حفظ كلمة المرور"),
+            variable=self.save_password_check,
+            onvalue="on",
+            offvalue="off",
+        )
         self.save_password.grid(row=2, column=0, sticky="s", padx=5, pady=5)
-        
-        self.start_with_timer_lbl = CTkLabel(self.home_frame, text=render_text("بدء الساعة التاسعة صباحا"))
+
+        self.start_with_timer_lbl = CTkLabel(
+            self.home_frame, text=render_text("بدء الساعة التاسعة صباحا")
+        )
         self.start_with_timer_lbl.grid(row=3, column=2, sticky="s", padx=5, pady=5)
-        self.start_with_timer_switch = CTkSwitch(self.home_frame, text="",variable=self.start_with_timer_check, onvalue="on", offvalue="off")
+        self.start_with_timer_switch = CTkSwitch(
+            self.home_frame,
+            text="",
+            variable=self.start_with_timer_check,
+            onvalue="on",
+            offvalue="off",
+        )
         self.start_with_timer_switch.grid(row=3, column=1, sticky="s", padx=5, pady=5)
-        
-        self.delay_lbl = CTkLabel(self.home_frame, text=render_text("التوقيت بين كل ضغطة وضعطة"))
+
+        self.delay_lbl = CTkLabel(
+            self.home_frame, text=render_text("التوقيت بين كل ضغطة وضعطة")
+        )
         self.delay_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
         self.delay_select = FloatSpinbox(self.home_frame, max=900)
         self.delay_select.grid(row=4, column=1, sticky="s", padx=5, pady=5)
-        
+
         self.add_applicant_btn.grid(row=2, column=1, sticky="s", padx=5, pady=5)
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -173,6 +194,7 @@ class App2(CTkFrame):
             self.home_frame,
             text=render_text("تعطيل البرنامج"),
             command=self.stop_execution,
+            state="disabled",
         )
         self.home_disable_btn.grid(row=5, column=0, sticky="s", padx=5, pady=5)
 
@@ -300,13 +322,13 @@ class App2(CTkFrame):
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
         )
         #############################################################################
-        
+
         self.home_frame.grid_rowconfigure(5, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(3, weight=1)
-        
+
         #############################################################################
-        
+
         for frame in (self.home_frame, self.second_frame):
             for child in frame.winfo_children():
                 if isinstance(child, CTkEntry):
@@ -364,7 +386,6 @@ class App2(CTkFrame):
 
     def frame_4_button_event(self):
         self.select_frame_by_name("frame_4")
-
 
     def add_applicant(self, account_name, account_password):
         if not (self.validation(self.home_frame)):
@@ -424,8 +445,10 @@ class App2(CTkFrame):
 
     def enable_applcant_data(self):
         for child in self.second_frame.winfo_children():
-            if isinstance(child, CTkEntry) or isinstance(child, CTkButton) or isinstance(
-                child, CTkOptionMenu
+            if (
+                isinstance(child, CTkEntry)
+                or isinstance(child, CTkButton)
+                or isinstance(child, CTkOptionMenu)
             ):
                 child.configure(state="normal")
         self.applicant_edit_btn.configure(state="disabled")
@@ -458,6 +481,7 @@ class App2(CTkFrame):
                 self.phonenum_img_state.configure(
                     text=file_path.split("/")[-1], text_color=success
                 )
+
     def print_in_log(self, text, color=info, url=""):
         current_time = datetime.now().strftime("%H:%M:%S")
         label = CTkLabel(
@@ -493,14 +517,32 @@ class App2(CTkFrame):
 
     def disable_home_data(self):
         for child in self.home_frame.winfo_children():
-            if isinstance(child, CTkEntry) or isinstance(child, CTkButton):
-                child.configure(state="disabled")
+            if (
+                isinstance(child, CTkEntry)
+                or isinstance(child, CTkButton)
+                or isinstance(child, CTkSwitch)
+                or isinstance(child, FloatSpinbox)
+                or isinstance(child, CTkCheckBox)
+            ):
+                try:
+                    child.configure(state="disabled")
+                except:
+                    child.disable_component()
         self.home_disable_btn.configure(state="normal")
 
     def enbale_home_data(self):
         for child in self.home_frame.winfo_children():
-            if isinstance(child, CTkEntry) or isinstance(child, CTkButton):
-                child.configure(state="normal")
+            if (
+                isinstance(child, CTkEntry)
+                or isinstance(child, CTkButton)
+                or isinstance(child, CTkSwitch)
+                or isinstance(child, FloatSpinbox)
+                or isinstance(child, CTkCheckBox)
+            ):
+                try:
+                    child.configure(state="normal")
+                except:
+                    child.enable_component()
         self.home_disable_btn.configure(state="disabled")
 
     def stop_execution(self):
@@ -512,19 +554,22 @@ class App2(CTkFrame):
             self.enbale_home_data()
             self.edit_img_data()
             secretvars.MAIN_FLAG = 0
+            self.enbale_home_data()
 
     def start_execution(self):
-        self.enbale_home_data
+        self.disable_home_data()
         if not (self.validate_all_fields()):
             return
         if self.start_with_timer_check.get() == "on":
             countdown = Countdown(8, 59, 57)
-            self.start_delay = self.after(countdown.time_to_start_program(), self.bot_excution)
+            self.start_delay = self.after(
+                countdown.time_to_start_program(), self.bot_excution
+            )
             self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
         else:
             self.bot_excution()
         self.select_frame_by_name("frame_5")
-        
+
     def bot_excution(self):
         secretvars.MAIN_FLAG = 1
         self.save_img_data()
@@ -534,13 +579,12 @@ class App2(CTkFrame):
         bot_thread = Thread(target=self.bot.start_booking)
         secretvars.Thread_Pool.append(bot_thread)
         bot_thread.start()
-    
+
     def right_click_event(self, event):
         clipboard_content = event.widget.clipboard_get()
-        processed_content = clipboard_content.strip() 
-        event.widget.insert('insert', processed_content)
-        return 'break'
-
+        processed_content = clipboard_content.strip()
+        event.widget.insert("insert", processed_content)
+        return "break"
 
     def validate_all_fields(self):
         if len(self.applicants) == 0:
