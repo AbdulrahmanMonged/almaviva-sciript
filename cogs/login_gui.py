@@ -10,6 +10,7 @@ from . import secretvars
 from .sheet_management import initialize_sheet
 from . import gui
 import os
+from .utility import resource_path
 
 
 class App(CTk):
