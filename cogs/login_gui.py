@@ -9,6 +9,7 @@ from awesometkinter.bidirender import render_text
 from . import secretvars
 from .sheet_management import initialize_sheet
 from . import gui
+import os
 
 
 class App(CTk):
@@ -93,3 +94,4 @@ class App(CTk):
         frame.pack(side="top", fill="both", expand=True)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
+        os.system('cls')

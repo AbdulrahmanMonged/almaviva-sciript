@@ -1,15 +1,12 @@
 from cogs.login_gui import App
 from cogs import secretvars
+import sys
 
 app = App()
 app.mainloop()
 
 secretvars.MAIN_FLAG = 0
-if len(secretvars.Thread_Pool):
-    for i in secretvars.Thread_Pool:
-        print("Thread Terminated")
-        i.join()
-
+sys.exit()
 
 # {
 #     "officeId": 1,
@@ -50,3 +47,4 @@ if len(secretvars.Thread_Pool):
 #     "source": "WEB",
 #     "otp": "121511",
 # }
+

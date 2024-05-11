@@ -17,7 +17,7 @@ import tkinter as tk
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
-
+        self.count = 0
         self.labels = []
         self.applicant = None
         self.applicants = []
@@ -490,7 +490,12 @@ class App2(CTkFrame):
             text_color=color,
             font=CTkFont(size=14, weight="bold"),
         )
-        label.grid(row=len(self.labels), column=0, sticky="e", padx=0, pady=0)
+        
+        if self.count > 500:
+            self.labels[0].destroy()
+            self.labels.remove(self.labels[0])
+        label.grid(row=self.count, column=0, sticky="e", padx=0, pady=0)
+        self.count += 1
         self.labels.append(label)
         if url:
             label.configure(cursor="hand2")
@@ -557,9 +562,9 @@ class App2(CTkFrame):
             self.enbale_home_data()
 
     def start_execution(self):
-        self.disable_home_data()
         if not (self.validate_all_fields()):
             return
+        self.disable_home_data()
         if self.start_with_timer_check.get() == "on":
             countdown = Countdown(8, 59, 57)
             self.start_delay = self.after(
