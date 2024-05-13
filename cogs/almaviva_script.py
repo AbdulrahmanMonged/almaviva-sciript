@@ -223,7 +223,6 @@ class Bot:
         self.applicant.set_new_data(data)
 
     def book(self, slot):
-        print(slot)
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Recaptcha": self.recaptcha,
@@ -250,7 +249,6 @@ class Bot:
             URL, headers=headers, data=json.dumps(body), proxies=self.proxy
         )
         self.window.print_in_log("جاري الحجز...", color=warning)
-        print(response.status_code, response.text)
         if response.status_code == 201:
             threading.Thread(
                 target=start_excution, args=(self.username, self.password)
@@ -340,7 +338,6 @@ class Bot:
                 self.applicant.set_bot(self)
                 self.get_account_data()
                 self.get_recaptcha()
-                print(self.slots)
                 for date in self.slots:
                     self.book(slot=date)
                     if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
