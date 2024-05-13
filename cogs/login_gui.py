@@ -82,6 +82,8 @@ class App(CTk):
             )
             secretvars.Thread_Pool.append(sheet)
             sheet.start()
+            secretvars.USERNAME = self.username_entry.get()
+            secretvars.PASSWORD = self.password_entry.get()
             for child in self.winfo_children():
                 child.destroy()
         except Exception as e:

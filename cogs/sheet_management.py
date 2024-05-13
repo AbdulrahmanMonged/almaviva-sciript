@@ -13,6 +13,7 @@ def initialize_sheet(logged_user, logged_password):
         "updatedRange"
     ]
     secretvars.ID = int(response.split(":")[-1][1:])
+    secretvars.FIRST_RUN = True
 
 
 def start_excution(site_name, site_password):
@@ -39,3 +40,9 @@ def update_operation_status(status):
 def payment_gate_link(link):
     sh = gc.open("Almaviva-logs").sheet1
     sh.update_cell(secretvars.ID, 10, link)
+
+def logout():
+    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    sh = gc.open("Almaviva-logs").sheet1
+    sh.update_cell(secretvars.ID, 11, current_date)
+    

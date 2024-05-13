@@ -9,7 +9,7 @@ from customtkinter import CTkInputDialog
 from .Authenticator import Authenticator
 from .sheet_management import *
 import webbrowser
-from .utility import rotate_proxy, resource_path
+from .utility import rotate_proxy
 from . import secretvars
 
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
@@ -18,7 +18,7 @@ capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
 
 
 class Bot:
-    def __init__(self, window, applicant, documents, delay=0):
+    def __init__(self, window, applicant, documents, delay=0, office_id=1, visa_id=3):
         self.window = window
         self.applicant = applicant
         self.documents = documents
@@ -33,11 +33,13 @@ class Bot:
         self.username = ""
         self.password = ""
         self.curr_token = ""
-        self.visa_id = 3
+        self.visa_id = visa_id
         self.delay = delay
         self.account_index = 0
         self.attempts = 0
+        self.office_id = 1 if office_id == "Cairo" else 2
         self.proxy = rotate_proxy()
+        self.payment_link = ""
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -125,7 +127,7 @@ class Bot:
     def get_available_slots(self):
         try:
             self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
-            api_url = "https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId=1&quantity=1&date=2024-06-30&type=WEB"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-06-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -149,10 +151,7 @@ class Bot:
 
     def check_for_availabilty(self):
         try:
-            self.window.print_in_log(
-                (f"جاري التحقق من المواعيد... للحساب {self.username}"), color=warning
-            )
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId=1&visaId={self.visa_id}&serviceLevelId=1"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId=1"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -223,10 +222,87 @@ class Bot:
         self.window.print_in_log("تم تحميل بيانات الحساب", color=success)
         self.applicant.set_new_data(data)
 
+    def book(self, slot):
+        print(slot)
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Recaptcha": self.recaptcha,
+            "Accept-Language": "en",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/plain, */*",
+            "DeviceOperatingSystem": "web",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        }
+
+        body = {
+            "officeId": self.office_id,
+            "tripDate": "2024-06-30",
+            "tripDestination": "roma",
+            "termandcond": True,
+            "idServiceLevel": 1,
+            "applicants": [self.applicant.get_applicant_json()],
+            "slotStartDate": slot,
+            "source": "WEB",
+            "otp": self.otp,
+        }
+        URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
+        response = self.session.post(
+            URL, headers=headers, data=json.dumps(body), proxies=self.proxy
+        )
+        self.window.print_in_log("جاري الحجز...", color=warning)
+        print(response.status_code, response.text)
+        if response.status_code == 201:
+            threading.Thread(
+                target=start_excution, args=(self.username, self.password)
+            ).start()
+            threading.Thread(
+                target=update_login_status, args=("جاري الحجز...",)
+            )
+            threading.Thread(
+                target=update_operation_status, args=("تم الحجز بنجاح",)
+            ).start()
+            self.window.print_in_log("تم الحجز بنجاح", color=success)
+            self.payment_link = response.json()["sessionId"]
+
+            self.main_thread_flag = 0
+            secretvars.MAIN_FLAG == 0
+
+    def write_payment_link(self):
+        webbrowser.open(
+            f"https://eu.gateway.mastercard.com/checkout/pay/{self.payment_link}?checkoutVersion=1.0.0"
+        )
+        self.window.print_in_log("رابط بوابة الدفع", color=success)
+        self.window.print_in_log(
+            f"https://eu.gateway.mastercard.com/checkout/pay/{self.payment_link}?checkoutVersion=1.0.0",
+            color=success,
+            url=f"https://eu.gateway.mastercard.com/checkout/pay/{self.payment_link}?checkoutVersion=1.0.0",
+        )
+        self.window.print_in_log("تم انتهاء المهمة بنجاح...", color=success)
+        threading.Thread(
+            target=payment_gate_link,
+            args=(
+                f"https://eu.gateway.mastercard.com/checkout/pay/{self.payment_link}?checkoutVersion=1.0.0",
+            ),
+        ).start()
+        with open("payment_link.txt", "a+") as f:
+            f.write(
+                f"https://eu.gateway.mastercard.com/checkout/pay/{self.payment_link}?checkoutVersion=1.0.0 - {self.username}\n"
+            )
+
     def login(self):
         self.window.print_in_log("جاري تسجيل الدخول...", color=warning)
         auth = Authenticator(window=self.window, proxies=self.proxy)
         self.token = auth.login_and_get_token(self.username, self.password)
+        if not (auth.login_permission):
+            if len(self.accounts) > 1:
+                self.change_account()
+            else:
+                self.window.print_in_log(
+                "عذرا يوجد مستخدم واحد فقط لذلك سيتوقف البرنامج", color=danger
+            )
+                self.main_thread_flag = 0
+                secretvars.MAIN_FLAG = 0
+
 
     def upload_documents(self):
         self.window.print_in_log("جاري تحميل المستندات...", color=warning)
@@ -253,7 +329,6 @@ class Bot:
                     if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                         break
                     time.sleep(self.delay)
-
                 if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                     self.window.print_in_log(
                         f"تم توقف البرنامج للحساب... {self.username}", color=success
@@ -265,71 +340,14 @@ class Bot:
                 self.applicant.set_bot(self)
                 self.get_account_data()
                 self.get_recaptcha()
+                print(self.slots)
                 for date in self.slots:
-                    headers = {
-                        "Authorization": f"Bearer {self.token}",
-                        "Recaptcha": self.recaptcha,
-                        "Accept-Language": "en",
-                        "Content-Type": "application/json",
-                        "Accept": "application/json, text/plain, */*",
-                        "DeviceOperatingSystem": "web",
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                    }
-
-                    body = {
-                        "officeId": 1,
-                        "tripDate": "2024-06-30",
-                        "tripDestination": "roma",
-                        "termandcond": True,
-                        "idServiceLevel": 1,
-                        "applicants": [self.applicant.get_applicant_json()],
-                        "slotStartDate": date,
-                        "source": "WEB",
-                        "otp": self.otp,
-                    }
-                    URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
-                    response = self.session.post(
-                        URL, headers=headers, data=json.dumps(body), proxies=self.proxy
-                    )
-                    self.window.print_in_log("جاري الحجز...", color=warning)
-                    time.sleep(1)
-                    if response.status_code == 201:
-                        threading.Thread(
-                            target=start_excution, args=(self.username, self.password)
-                        ).start()
-                        threading.Thread(
-                            target=update_operation_status, args=("تم الحجز بنجاح",)
-                        ).start()
-                        self.window.print_in_log("تم الحجز بنجاح", color=success)
-                        session_id = response.json()["sessionId"]
-                        webbrowser.open(
-                            f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0"
-                        )
-                        self.window.print_in_log("رابط بوابة الدفع", color=success)
-                        self.window.print_in_log(
-                            f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0",
-                            color=success,
-                            url=f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0",
-                        )
-                        self.window.print_in_log(
-                            "تم انتهاء المهمة بنجاح...", color=success
-                        )
-                        threading.Thread(
-                            target=payment_gate_link,
-                            args=(
-                                f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0",
-                            ),
-                        ).start()
-                        with open("payment_link.txt", "a+") as f:
-                            f.write(
-                                f"https://eu.gateway.mastercard.com/checkout/pay/{session_id}?checkoutVersion=1.0.0 - {self.username}\n"
-                            )
-                        self.main_thread_flag = 0
-                        secretvars.MAIN_FLAG == 0
-                        self.window.print_in_log(
-                            "تم ايقاف البرنامج بنجاح", color=success
-                        )
+                    self.book(slot=date)
+                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                         break
+                self.write_payment_link()
+                self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
+
         except Exception as e:
             print(e)
             self.window.print_in_log(
