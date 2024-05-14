@@ -11,6 +11,8 @@ from .sheet_management import *
 import webbrowser
 from .utility import rotate_proxy
 from . import secretvars
+from .Countdown import Countdown
+import time
 
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
@@ -18,7 +20,18 @@ capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
 
 
 class Bot:
-    def __init__(self, window, applicant, documents, delay=0, office_id=1, visa_id=3):
+    def __init__(
+        self,
+        window,
+        applicant,
+        documents,
+        delay=0,
+        office_id=1,
+        visa_id=3,
+        mode=0,
+        serviceLevel=1,
+        countdown=0,
+    ):
         self.window = window
         self.applicant = applicant
         self.documents = documents
@@ -40,6 +53,10 @@ class Bot:
         self.office_id = 1 if office_id == "Cairo" else 2
         self.proxy = rotate_proxy()
         self.payment_link = ""
+        self.mode = mode
+        self.availability = False
+        self.serviceLevel = serviceLevel
+        self.countdown = countdown
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -146,12 +163,13 @@ class Bot:
             response = self.session.get(api_url, headers=headers, proxies=self.proxy)
             self.slots = response.json()
             self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
+            print(response.status_code, response.text)
         except Exception as e:
             self.window.print_in_log("يوجد خطأ في الحصول علي اماكن للحجز", color=danger)
 
     def check_for_availabilty(self):
         try:
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId=1"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId={self.serviceLevel}"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -168,11 +186,13 @@ class Bot:
                 "Sec-Fetch-Site": "same-site",
             }
             response = self.session.get(api_url, headers=headers, proxies=self.proxy)
+            print(response.status_code, response.text)
             if response.status_code == 200:
                 if response.json():
                     self.window.print_in_log(
                         f"يوجد مواعيد للحجز!..للحساب {self.username}", color=success
                     )
+                    self.availability = True
                 else:
                     self.attempts += 1
                     self.window.print_in_log(
@@ -238,7 +258,7 @@ class Bot:
             "tripDate": "2024-06-30",
             "tripDestination": "roma",
             "termandcond": True,
-            "idServiceLevel": 1,
+            "idServiceLevel": self.serviceLevel,
             "applicants": [self.applicant.get_applicant_json()],
             "slotStartDate": slot,
             "source": "WEB",
@@ -249,13 +269,12 @@ class Bot:
             URL, headers=headers, data=json.dumps(body), proxies=self.proxy
         )
         self.window.print_in_log("جاري الحجز...", color=warning)
+        print(response.status_code, response.text)
         if response.status_code == 201:
             threading.Thread(
                 target=start_excution, args=(self.username, self.password)
             ).start()
-            threading.Thread(
-                target=update_login_status, args=("جاري الحجز...",)
-            )
+            threading.Thread(target=update_login_status, args=("جاري الحجز...",))
             threading.Thread(
                 target=update_operation_status, args=("تم الحجز بنجاح",)
             ).start()
@@ -296,11 +315,10 @@ class Bot:
                 self.change_account()
             else:
                 self.window.print_in_log(
-                "عذرا يوجد مستخدم واحد فقط لذلك سيتوقف البرنامج", color=danger
-            )
+                    "عذرا يوجد مستخدم واحد فقط لذلك سيتوقف البرنامج", color=danger
+                )
                 self.main_thread_flag = 0
                 secretvars.MAIN_FLAG = 0
-
 
     def upload_documents(self):
         self.window.print_in_log("جاري تحميل المستندات...", color=warning)
@@ -318,32 +336,52 @@ class Bot:
 
     def start_booking(self):
         try:
-            while self.main_thread_flag:
+            while not (self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0):
                 if not (self.username) or not (self.password):
                     self.username = self.accounts[self.account_index][0]
                     self.password = self.accounts[self.account_index][1]
                 self.login()
-                while not (self.check_for_availabilty()):
-                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
-                        break
-                    time.sleep(self.delay)
-                if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                if self.countdown:
+                    countdown = Countdown(8, 59, 59)
                     self.window.print_in_log(
-                        f"تم توقف البرنامج للحساب... {self.username}", color=success
+                        f"في انتظار الساعة {countdown} للاستعلام عن المواعيد",
+                        color=warning,
+                    )
+                    time.sleep(countdown.get_remaining_seconds())
+                if self.mode:
+                    while not (self.check_for_availabilty()):
+                        if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                            break
+                        time.sleep(self.delay)
+                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                        self.window.print_in_log(
+                            f"تم توقف البرنامج للحساب... {self.username}", color=success
+                        )
+                        break
+                else:
+                    self.check_for_availabilty()
+                if self.availability:
+                    self.upload_documents()
+                    self.get_available_slots()
+                    self.send_otp()
+                    self.applicant.set_bot(self)
+                    self.get_account_data()
+                    self.get_recaptcha()
+                    for date in self.slots:
+                        self.book(slot=date)
+                        if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                            break
+                    if self.payment_link:
+                        self.write_payment_link()
+                else:
+                    self.window.print_in_log(
+                        "عذرا لا يوجد مواعيد متاحة للحجز...برجاء المحاولة مرة اخري",
+                        color=danger,
                     )
                     break
-                self.upload_documents()
-                self.get_available_slots()
-                self.send_otp()
-                self.applicant.set_bot(self)
-                self.get_account_data()
-                self.get_recaptcha()
-                for date in self.slots:
-                    self.book(slot=date)
-                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
-                        break
-                self.write_payment_link()
-                self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
+                if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                    break
+            self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
 
         except Exception as e:
             print(e)

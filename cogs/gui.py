@@ -136,14 +136,15 @@ class App2(CTkFrame):
             self.home_frame, text=render_text("اسم المستخدم")
         )
         self.username_label.grid(row=0, column=2, sticky="nsew")
-        self.username_entry = CTkEntry(self.home_frame)
+        self.username_entry = CTkEntry(self.home_frame, width=170)
         self.username_entry.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         self.password_label = CTkLabel(self.home_frame, text=render_text("كلمة المرور"))
         self.password_label.grid(row=1, column=2, sticky="nsew")
-        self.password_entry = CTkEntry(self.home_frame, show="*")
+        self.password_entry = CTkEntry(self.home_frame, show="*", width=170)
         self.password_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
         self.add_applicant_btn = CTkButton(
             self.home_frame,
+            width=170,
             text=render_text("اضافة مستخدم"),
             command=lambda: self.add_applicant(
                 self.username_entry.get(), self.password_entry.get()
@@ -168,11 +169,27 @@ class App2(CTkFrame):
         self.office_id_lbl = CTkLabel(self.home_frame, text=render_text("المكتب"))
         self.office_id_lbl.grid(row=3, column=2, sticky="s", padx=5, pady=5)
         self.office_id_option = CTkOptionMenu(
-            self.home_frame, values=["Cairo", "Alexandria"]
+            self.home_frame, values=["Cairo", "Alexandria"], width=170
         )
         self.office_id_option.grid(row=3, column=1, sticky="s", padx=5, pady=5)
-
-        self.start_with_timer_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
+        
+        self.visa_price_lbl = CTkLabel(self.home_frame, text=render_text("سعر الفيزا"))
+        self.visa_price_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
+        self.visa_price_options = CTkOptionMenu(
+            self.home_frame, values=["Standard - EGP 1750", "Vip - EGP 3810"], width=170
+        )
+        self.visa_price_options.grid(row=4, column=1, sticky="s", padx=5, pady=5)
+        
+        self.mode_lbl = CTkLabel(self.home_frame, text=render_text("الوضع"))
+        self.mode_lbl.grid(row=5, column=2, sticky="s", padx=5, pady=5)
+        self.mode_option = CTkOptionMenu(
+            self.home_frame, values=[render_text("استكمال حجز"), render_text("البحث عن حجز")], width=170
+        )
+        self.mode_option.grid(row=5, column=1, sticky="s", padx=5, pady=5)
+        
+        
+        
+        self.start_with_timer_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
             text="",
@@ -180,28 +197,28 @@ class App2(CTkFrame):
             onvalue="on",
             offvalue="off",
         )
-        self.start_with_timer_switch.grid(row=4, column=1, sticky="s", padx=5, pady=5)
+        self.start_with_timer_switch.grid(row=6, column=1, sticky="s", padx=5, pady=5)
 
         self.delay_lbl = CTkLabel(
             self.home_frame, text=render_text("التوقيت بين كل ضغطة وضعطة")
         )
-        self.delay_lbl.grid(row=5, column=2, sticky="s", padx=5, pady=5)
+        self.delay_lbl.grid(row=7, column=2, sticky="s", padx=5, pady=5)
         self.delay_select = FloatSpinbox(self.home_frame, max=900)
-        self.delay_select.grid(row=5, column=1, sticky="s", padx=5, pady=5)
+        self.delay_select.grid(row=7, column=1, sticky="s", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
             text=render_text("بدا البرنامج"),
             command=self.start_execution,
         )
-        self.start_program_button.grid(row=6, column=2, sticky="s", padx=5, pady=5)
+        self.start_program_button.grid(row=8, column=2, sticky="s", padx=5, pady=5)
         self.home_disable_btn = CTkButton(
             self.home_frame,
             text=render_text("تعطيل البرنامج"),
             command=self.stop_execution,
             state="disabled",
         )
-        self.home_disable_btn.grid(row=6, column=0, sticky="s", padx=5, pady=5)
+        self.home_disable_btn.grid(row=8, column=0, sticky="s", padx=5, pady=5)
 
         #############################  ACCOUNT_INFORMATION ######################################
         self.birthdate_lbl = CTkLabel(
@@ -328,7 +345,7 @@ class App2(CTkFrame):
         )
         #############################################################################
 
-        self.home_frame.grid_rowconfigure(6, weight=1)
+        self.home_frame.grid_rowconfigure(8, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(3, weight=1)
 
@@ -573,7 +590,7 @@ class App2(CTkFrame):
             return
         self.disable_home_data()
         if self.start_with_timer_check.get() == "on":
-            countdown = Countdown(8, 59, 58)
+            countdown = Countdown(8, 59, 55)
             self.start_delay = self.after(
                 countdown.time_to_start_program(), self.bot_excution
             )
@@ -581,9 +598,9 @@ class App2(CTkFrame):
         else:
             self.bot_excution()
         self.select_frame_by_name("frame_5")
+        
 
     def bot_excution(self):
-        
         secretvars.MAIN_FLAG = 1
         self.save_img_data()
         self.get_data()
@@ -594,6 +611,9 @@ class App2(CTkFrame):
             self.delay_select.get(),
             self.office_id_option.get(),
             self.visa_id,
+            0 if self.mode_option.get() == render_text("استكمال حجز") else 1,
+            1 if self.visa_price_options.get() == "Standard - EGP 1750" else 2,
+            self.start_with_timer_check.get() == "on"
         )
         self.bot.accounts = self.get_all_applicants()
         bot_thread = Thread(target=self.bot.start_booking)
