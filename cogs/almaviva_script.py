@@ -421,7 +421,8 @@ class Bot:
                 asyncio.run(self.async_check_for_availabilty(self.token))
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                 self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
-
+            else:
+                self.window.print_in_log("تم انهاء البرنامج بنجاح لانتهاء جميع الحسابات من الوظيفة", color=success)
         except Exception as e:
             print(e)
             self.window.print_in_log(
