@@ -11,9 +11,11 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+
 def generate_random_str():
     string = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
     return "".join(random.choice(string) for _ in range(8))
+
 
 def rotate_proxy(async_session=False):
     session = generate_random_str()

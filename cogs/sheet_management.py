@@ -41,8 +41,8 @@ def payment_gate_link(link):
     sh = gc.open("Almaviva-logs").sheet1
     sh.update_cell(secretvars.ID, 10, link)
 
+
 def logout():
     current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     sh = gc.open("Almaviva-logs").sheet1
     sh.update_cell(secretvars.ID, 11, current_date)
-    

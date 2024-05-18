@@ -117,8 +117,8 @@ class Bot:
             payment_link = self.payment_link
         if not token:
             token = self.token
-            
-        user = self.get_user(token)[0] if not(self.username) else self.username
+
+        user = self.get_user(token)[0] if not (self.username) else self.username
         webbrowser.open(
             f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0"
         )
@@ -261,7 +261,7 @@ class Bot:
         self.applicant.set_new_data(data)
 
     async def async_book(self, slot, session, token):
-        user = self.get_user(token)[0] if not(self.username) else self.username
+        user = self.get_user(token)[0] if not (self.username) else self.username
         headers = {
             "Authorization": f"Bearer {token}",
             "Recaptcha": self.recaptcha,
@@ -288,9 +288,7 @@ class Bot:
         print(response.status, await response.text())
         if response.status == 201:
             self.booked = 1
-            threading.Thread(
-                target=start_excution, args=(user[0], user[1])
-            ).start()
+            threading.Thread(target=start_excution, args=(user[0], user[1])).start()
             threading.Thread(target=update_login_status, args=("جاري الحجز...",))
             threading.Thread(
                 target=update_operation_status, args=("تم الحجز بنجاح",)
@@ -308,7 +306,7 @@ class Bot:
             self.async_get_account_data(session, token),
             self.async_send_otp(session, token),
             self.async_upload_documents(session, token),
-            self.get_recaptcha()
+            self.get_recaptcha(),
         ]
         if self.availability and (not self.booked):
             responses = await asyncio.gather(*tasks)
@@ -331,7 +329,7 @@ class Bot:
             )
 
     async def async_check_for_availabilty(self, token):
-        user = self.get_user(token)[0] if not(self.username) else self.username
+        user = self.get_user(token)[0] if not (self.username) else self.username
         checking_FLAG = 1
         api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId={self.serviceLevel}"
         headers = {
@@ -369,8 +367,9 @@ class Bot:
                         if response.status == 200:
                             if await response.text() == "true":
                                 self.window.print_in_log(
-                                f"تم الحصول علي مواعيد للمستخدم ... {user}", color=success
-                            )
+                                    f"تم الحصول علي مواعيد للمستخدم ... {user}",
+                                    color=success,
+                                )
                                 self.availability = True
                                 self.FLAG = 0
                                 if not self.token or self.username:
@@ -380,7 +379,7 @@ class Bot:
                                     )
                                     return
                             else:
-                                if not(self.mode):
+                                if not (self.mode):
                                     return
                                 await asyncio.sleep(0.1)
                         if response.status == 429:
@@ -396,16 +395,17 @@ class Bot:
         try:
             self.collect_tokens()
             for token in self.tokens:
-                tasks.append(asyncio.create_task(self.async_check_for_availabilty(token)))
+                tasks.append(
+                    asyncio.create_task(self.async_check_for_availabilty(token))
+                )
             await asyncio.gather(*tasks)
         except Exception as e:
             print(e)
-            
+
     def start_booking(self):
         try:
             if self.mode:
                 asyncio.run(self.async_run_tasks())
-                
             else:
                 if not (self.username) or not (self.password):
                     self.username = self.accounts[0][0]
@@ -422,7 +422,10 @@ class Bot:
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                 self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
             else:
-                self.window.print_in_log("تم انهاء البرنامج بنجاح لانتهاء جميع الحسابات من الوظيفة", color=success)
+                self.window.print_in_log(
+                    "تم انهاء البرنامج بنجاح لانتهاء جميع الحسابات من الوظيفة",
+                    color=success,
+                )
         except Exception as e:
             print(e)
             self.window.print_in_log(
