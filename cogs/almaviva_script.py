@@ -18,6 +18,7 @@ from aiohttp_socks import ProxyConnector
 import asyncio
 
 
+
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
 capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
@@ -329,6 +330,7 @@ class Bot:
             )
 
     async def async_check_for_availabilty(self, token):
+        print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
         user = self.get_user(token)[0] if not (self.username) else self.username
         checking_FLAG = 1
         api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId={self.serviceLevel}"
@@ -398,6 +400,13 @@ class Bot:
                 tasks.append(
                     asyncio.create_task(self.async_check_for_availabilty(token))
                 )
+            if self.countdown:
+                countdown = Countdown(7, 59, 59)
+                self.window.print_in_log(
+                    f"في انتظار الساعة {countdown} للاستعلام عن المواعيد",
+                    color=warning,
+                )
+                await asyncio.sleep(countdown.get_remaining_seconds())
             await asyncio.gather(*tasks)
         except Exception as e:
             print(e)
@@ -411,13 +420,6 @@ class Bot:
                     self.username = self.accounts[0][0]
                     self.password = self.accounts[0][1]
                 self.login()
-                if self.countdown:
-                    countdown = Countdown(8, 59, 59)
-                    self.window.print_in_log(
-                        f"في انتظار الساعة {countdown} للاستعلام عن المواعيد",
-                        color=warning,
-                    )
-                    time.sleep(countdown.get_remaining_seconds())
                 asyncio.run(self.async_check_for_availabilty(self.token))
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                 self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)

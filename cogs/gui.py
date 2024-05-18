@@ -580,7 +580,7 @@ class App2(CTkFrame):
             return
         self.disable_home_data()
         if self.start_with_timer_check.get() == "on":
-            countdown = Countdown(8, 59, 55)
+            countdown = Countdown(7, 59, 55)
             self.start_delay = self.after(
                 countdown.time_to_start_program(), self.bot_excution
             )
