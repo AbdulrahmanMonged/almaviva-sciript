@@ -10,7 +10,6 @@ from threading import Thread
 import webbrowser
 from .Countdown import Countdown
 from . import secretvars
-from .FloatSpinbox import FloatSpinbox
 from .sheet_management import initialize_sheet
 
 
@@ -198,13 +197,6 @@ class App2(CTkFrame):
             offvalue="off",
         )
         self.start_with_timer_switch.grid(row=6, column=1, sticky="s", padx=5, pady=5)
-
-        self.delay_lbl = CTkLabel(
-            self.home_frame, text=render_text("التوقيت بين كل ضغطة وضعطة")
-        )
-        self.delay_lbl.grid(row=7, column=2, sticky="s", padx=5, pady=5)
-        self.delay_select = FloatSpinbox(self.home_frame, max=900)
-        self.delay_select.grid(row=7, column=1, sticky="s", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -548,7 +540,6 @@ class App2(CTkFrame):
                 isinstance(child, CTkEntry)
                 or isinstance(child, CTkButton)
                 or isinstance(child, CTkSwitch)
-                or isinstance(child, FloatSpinbox)
                 or isinstance(child, CTkCheckBox)
                 or isinstance(child, CTkOptionMenu)
             ):
@@ -564,7 +555,6 @@ class App2(CTkFrame):
                 isinstance(child, CTkEntry)
                 or isinstance(child, CTkButton)
                 or isinstance(child, CTkSwitch)
-                or isinstance(child, FloatSpinbox)
                 or isinstance(child, CTkCheckBox)
                 or isinstance(child, CTkOptionMenu)
             ):
@@ -608,7 +598,6 @@ class App2(CTkFrame):
             self,
             self.applicant,
             self.documents,
-            self.delay_select.get(),
             self.office_id_option.get(),
             self.visa_id,
             0 if self.mode_option.get() == render_text("استكمال حجز") else 1,

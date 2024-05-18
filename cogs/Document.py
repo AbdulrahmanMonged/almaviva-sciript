@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 
 
 class Document:
@@ -68,6 +69,28 @@ class Document:
         except Exception as e:
             return False
 
+    async def async_send_presigned_url_request(self, session, token):
+        try:
+            api_url = "https://egyapi.almaviva-visa.it/reservation-manager//api/documents/v1/upload-presigned-url"
+            headers = {
+                "Accept": "application/json, text/plain, */*",
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            }
+            data = self.get_presigned_url_json()
+            response = await session.post(
+                api_url, headers=headers, data=json.dumps(data)
+            )
+            if response and response.status in [200, 201, 202, 203, 204]:
+                data = await response.json()
+                self.set_presigned_url(data["presignedUrl"])
+                self.set_temporary_key(data["temporaryKey"])
+                return True
+            return False
+        except Exception as e:
+            return False
+
     def send_put_request(self):
         try:
             api_url = self.presignedUrl
@@ -91,6 +114,25 @@ class Document:
             count = 0
             while not self.presignedUrl and count < 3:
                 self.send_presigned_url_request(token, proxy)
+                count += 1
+            if not self.presignedUrl:
+                return False
+            count = 0
+            uploaded = False
+            while not uploaded and count < 3:
+                uploaded = self.send_put_request()
+                count += 1
+            if not uploaded:
+                return False
+            return True
+        except Exception as e:
+            return False
+
+    async def async_upload_document(self, session, token):
+        try:
+            count = 0
+            while not self.presignedUrl and count < 3:
+                await self.async_send_presigned_url_request(session, token)
                 count += 1
             if not self.presignedUrl:
                 return False
