@@ -9,7 +9,7 @@ from customtkinter import CTkInputDialog
 from .Authenticator import Authenticator
 from .sheet_management import *
 import webbrowser
-from .utility import rotate_proxy
+from .utility import rotate_proxy, resource_path
 from . import secretvars
 from .Countdown import Countdown
 import time
@@ -17,11 +17,15 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 import asyncio
 
-
-
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
 capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
+
+with open(resource_path("open_id_config.json")) as f:
+    open_id_config = json.load(f)
+
+with open(resource_path("config.json")) as f:
+    config = json.load(f)
 
 
 class Bot:
@@ -61,6 +65,15 @@ class Bot:
         self.FLAG = 1
         self.threads = []
         self.booked = 0
+        self.accepted_accounts = []
+        self.target_h = 7
+        self.target_min = 59
+        self.target_sec = 48
+        with open(resource_path("open_id_config.json")) as f:
+            self.open_id_config = json.load(f)
+
+        with open(resource_path("config.json")) as f:
+            self.config = json.load(f)
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -118,7 +131,6 @@ class Bot:
             payment_link = self.payment_link
         if not token:
             token = self.token
-
         user = self.get_user(token)[0] if not (self.username) else self.username
         webbrowser.open(
             f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0"
@@ -160,15 +172,6 @@ class Bot:
             return self.session.get(SIGN_IN_URL).status_code
         except Exception as e:
             return 400
-
-    def collect_tokens(self):
-        for account in self.accounts:
-            auth = Authenticator(window=self.window, proxies=rotate_proxy())
-            token = auth.login_and_get_token(account[0], account[1])
-            if not (auth.login_permission):
-                self.accounts.remove(account)
-                continue
-            self.tokens.append(token)
 
     def get_user(self, token):
         return self.accounts[self.tokens.index(token)]
@@ -262,7 +265,7 @@ class Bot:
         self.applicant.set_new_data(data)
 
     async def async_book(self, slot, session, token):
-        user = self.get_user(token)[0] if not (self.username) else self.username
+        user = self.get_user(token) if not (self.username) else [self.username, self.password]
         headers = {
             "Authorization": f"Bearer {token}",
             "Recaptcha": self.recaptcha,
@@ -330,7 +333,6 @@ class Bot:
             )
 
     async def async_check_for_availabilty(self, token):
-        print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
         user = self.get_user(token)[0] if not (self.username) else self.username
         checking_FLAG = 1
         api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/planning/v1/checks?officeId={self.office_id}&visaId={self.visa_id}&serviceLevelId={self.serviceLevel}"
@@ -352,63 +354,92 @@ class Bot:
         try:
             connector = ProxyConnector.from_url(rotate_proxy(True))
             async with aiohttp.ClientSession(connector=connector) as session:
+                if self.countdown:
+                    countdown = Countdown(
+                        self.target_h, self.target_min, self.target_sec
+                    )
+                    await asyncio.sleep(countdown.get_remaining_seconds())
+                print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
                 while (
                     self.FLAG
                     and self.main_thread_flag
                     and secretvars.MAIN_FLAG
                     and checking_FLAG
                 ):
-                    tasks = [session.get(api_url, headers=headers) for _ in range(2)]
+                    tasks = [session.get(api_url, headers=headers) for _ in range(1)]
                     responses = await asyncio.gather(*tasks)
-                    for response in responses:
-                        if not (checking_FLAG):
-                            break
-                        print(
-                            f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of checking is '{(await response.text()).upper()}' Status code: '{response.status}' for user '{user}'"
-                        )
-                        if response.status == 200:
-                            if await response.text() == "true":
-                                self.window.print_in_log(
-                                    f"تم الحصول علي مواعيد للمستخدم ... {user}",
-                                    color=success,
-                                )
-                                self.availability = True
-                                self.FLAG = 0
-                                if not self.token or self.username:
-                                    self.token = token
-                                    await self.async_after_confirmation(
-                                        session=session, token=token
-                                    )
-                                    return
-                            else:
-                                if not (self.mode):
-                                    return
-                                await asyncio.sleep(0.1)
-                        if response.status == 429:
+                    response = responses[0]
+                    if not (checking_FLAG):
+                        break
+                    print(
+                        f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of checking is '{(await response.text()).upper()}' Status code: '{response.status}' for user '{user}'"
+                    )
+                    if response.status == 200:
+                        if await response.text() == "true":
                             self.window.print_in_log(
-                                f"لا يوجد مواعيد للمستخدم حاليا... {user}", color=danger
+                                f"تم الحصول علي مواعيد للمستخدم ... {user}",
+                                color=success,
                             )
-                            checking_FLAG = 0
+                            self.availability = True
+                            self.FLAG = 0
+                            self.accepted_accounts.append(token)
+                            if not self.token or self.username:
+                                self.token = token
+                                await self.async_after_confirmation(
+                                    session=session, token=token
+                                )
+                                return
+                        else:
+                            if not (self.mode):
+                                return
+                            await asyncio.sleep(0.1)
+                    if response.status == 429:
+                        self.window.print_in_log(
+                            f"لا يوجد مواعيد للمستخدم حاليا... {user}", color=danger
+                        )
+                        checking_FLAG = 0
         except Exception as e:
             print(e)
+            await self.async_check_for_availabilty(token)
+
+    async def async_login_handler(self, account):
+        connector = ProxyConnector.from_url(rotate_proxy(True))
+        async with aiohttp.ClientSession(connector=connector) as session:
+            auth = Authenticator(
+                window=self.window,
+                open_id_config=self.open_id_config,
+                config=self.config,
+                session=session,
+            )
+            token = await auth.login_and_get_token(account[0], account[1])
+            if not (auth.login_permission):
+                self.accounts.remove(account)
+                return
+            self.tokens.append(token)
+
+    async def login_handler(self):
+        tasks = []
+        for account in self.accounts:
+            tasks.append(asyncio.create_task(self.async_login_handler(account)))
+        await asyncio.gather(*tasks)
 
     async def async_run_tasks(self):
         tasks = []
         try:
-            self.collect_tokens()
+            await self.login_handler()
             for token in self.tokens:
                 tasks.append(
                     asyncio.create_task(self.async_check_for_availabilty(token))
                 )
             if self.countdown:
-                countdown = Countdown(7, 59, 59)
+                countdown = Countdown(self.target_h, self.target_min, self.target_sec)
                 self.window.print_in_log(
-                    f"في انتظار الساعة {countdown} للاستعلام عن المواعيد",
+                    f"في انتظار الساعة {countdown} للاستعلام عن المواعيد ...",
                     color=warning,
                 )
-                await asyncio.sleep(countdown.get_remaining_seconds())
             await asyncio.gather(*tasks)
         except Exception as e:
+            print("GOT ERRORED: ", e)
             print(e)
 
     def start_booking(self):
@@ -419,8 +450,10 @@ class Bot:
                 if not (self.username) or not (self.password):
                     self.username = self.accounts[0][0]
                     self.password = self.accounts[0][1]
-                self.login()
-                asyncio.run(self.async_check_for_availabilty(self.token))
+                asyncio.run(self.async_login_handler([self.username, self.password]))
+                if len(self.tokens) > 0:
+                    self.token = self.tokens[0]
+                    asyncio.run(self.async_check_for_availabilty(self.token))
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                 self.window.print_in_log("تم ايقاف البرنامج بنجاح", color=success)
             else:

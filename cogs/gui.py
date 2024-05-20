@@ -579,12 +579,16 @@ class App2(CTkFrame):
         if not (self.validate_all_fields()):
             return
         self.disable_home_data()
+        countdown = Countdown(7, 55, 0)
+        future_countdown = Countdown(7, 59, 48)
         if self.start_with_timer_check.get() == "on":
-            countdown = Countdown(7, 59, 55)
-            self.start_delay = self.after(
-                countdown.time_to_start_program(), self.bot_excution
-            )
-            self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
+            if not(countdown.get_remaining_time() > future_countdown.get_remaining_time()):
+                self.start_delay = self.after(
+                    countdown.time_to_start_program(), self.bot_excution
+                )
+                self.print_in_log(f"البرنامج سيبدأ في {countdown}", color=warning)
+            else:
+                self.bot_excution()
         else:
             self.bot_excution()
         self.select_frame_by_name("frame_5")

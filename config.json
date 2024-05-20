@@ -1,0 +1,27 @@
+{
+    "environment": {
+        "production": false,
+        "authConfigIssuer": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce",
+        "authConfigRedirectUri": "https://egy.almaviva-visa.it/",
+        "authConfigClientId": "aa-visasys-public",
+        "authConfigResponseType": "code",
+        "authConfigScope": "openid profile email",
+        "cmsUrl": "https://egyapi.almaviva-visa.it/cms/",
+        "cmsAPI": "rest",
+        "configurationManagerAPI": "https://egyapi.almaviva-visa.it/configuration-manager",
+        "reservationManagerApi": "https://egyapi.almaviva-visa.it/reservation-manager",
+        "cmsBeApi": "https://egyapi.almaviva-visa.it/cms-be",
+        "sitekey": "6LewmsUpAAAAAOJYsdlzBrXXYzKvMwTqzrw-H-qP",
+        "paymentProvider": "MASTERCARD",
+        "codeISOAlpha3": "EGY",
+        "title": "AlmavivA Visa Egypt",
+        "metaDescription": "AlmavivA Egypt Visa Services is your partner in Egypt for all of your Italian visa needs. Consult guides, get the list of requirements and create your visa application.",
+        "metaKeywords": "visa, immigration, consulate, italy, embassy, spouse visa, working visa, italy visa, schengen visa, schengen visa application, schengen, visa application, italy schengen visa application form egypt, italy visa application form egypt, egypt visa application, visa application center, italy visa application center, italy immigrant visa application, visa application center cairo, visa application center alexandria",
+        "emailInfo": "eg.info-visa@almaviva-visa.it",
+        "emailGroups": "eg.gruppi@almaviva-visa.it"
+    },
+    "mapConfiguration": {
+        "defaultLatitute": "41.902782",
+        "defaultLongitude": "12.496366"
+    }
+}

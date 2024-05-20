@@ -2,7 +2,6 @@ import base64
 import random
 import secrets
 import string
-import requests
 import hashlib
 from .colors import *
 
@@ -26,7 +25,7 @@ def create_nonce():
 class Authenticator:
 
     def __init__(self, **kwargs):
-        self._session = kwargs.get("session", requests.Session())
+        self._session = kwargs.get("session")
         self._headers = {
             "Accept": "application/json, text/plain, */*",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -85,39 +84,29 @@ class Authenticator:
         else:
             pass
 
-    def _auth(self):
+    async def _auth(self):
         api_url = f"{self._open_id_config['authorization_endpoint']}?client_id={self._config['environment']['authConfigClientId']}&response_type={self._config['environment']['authConfigResponseType']}&scope={self._config['environment']['authConfigScope']}&redirect_uri={self._config['environment']['authConfigRedirectUri']}&state={self._state}&code_challenge={self._code_challenge}&code_challenge_method=S256&nonce={self._nonce}"
-        if self.proxy:
-            response = self._session.get(
-                api_url, headers=self._headers, proxies=self.proxy
-            )
-        else:
-            response = self._session.get(api_url, headers=self._headers)
-        if response and response.status_code == 200:
-            self._session_code = response.text.split("session_code=")[1].split("&")[0]
-            self._execution = response.text.split("execution=")[1].split("&")[0]
-            self._tab_id = response.text.split("tab_id=")[1].split("&")[0]
+        response = await self._session.get(
+            api_url,
+            headers=self._headers,
+        )
+        if response and response.status == 200:
+            data = await response.text()
+            self._session_code = data.split("session_code=")[1].split("&")[0]
+            self._execution = data.split("execution=")[1].split("&")[0]
+            self._tab_id = data.split("tab_id=")[1].split("&")[0]
         else:
             pass
 
-    def _authenticate(self, username, password):
+    async def _authenticate(self, username, password):
         api_url = f"https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/login-actions/authenticate?session_code={self._session_code}&execution={self._execution}&client_id={self._config['environment']['authConfigClientId']}&tab_id={self._tab_id}"
         headers = self._headers
         headers["Content-Type"] = "application/x-www-form-urlencoded"
         data = {"username": username, "password": password, "credentialId": ""}
-        if self.proxy:
-            response = self._session.post(
-                api_url,
-                headers=headers,
-                data=data,
-                allow_redirects=False,
-                proxies=self.proxy,
-            )
-        else:
-            response = self._session.post(
-                api_url, headers=headers, data=data, allow_redirects=False
-            )
-        if response and response.status_code == 302:
+        response = await self._session.post(
+            api_url, headers=headers, data=data, allow_redirects=False
+        )
+        if response and response.status == 302:
             self._code = response.headers["Location"].split("code=")[1]
             self.window.print_in_log(
                 f"تم تسجيل الدخول للحساب {username}", color=success
@@ -129,7 +118,7 @@ class Authenticator:
             )
             self.login_permission = False
 
-    def _get_token(self):
+    async def _get_token(self):
         api_url = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/token"
         headers = self._headers
         headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -142,14 +131,10 @@ class Authenticator:
             "code_verifier": self._code_verifier,
             "client_id": self._config["environment"]["authConfigClientId"],
         }
-        if self.proxy:
-            response = self._session.post(
-                api_url, headers=headers, data=data, proxies=self.proxy
-            )
-        else:
-            response = self._session.post(api_url, headers=headers, data=data)
-        if response and response.status_code == 200:
-            self.access_token = response.json()["access_token"]
+        response = await self._session.post(api_url, headers=headers, data=data)
+        if response and response.status == 200:
+            data = await response.json()
+            self.access_token = data["access_token"]
         else:
             pass
 
@@ -159,8 +144,8 @@ class Authenticator:
         if self._config:
             return self._config["environment"]["sitekey"]
 
-    def login_and_get_token(self, username, password):
-        self._auth()
-        self._authenticate(username, password)
-        self._get_token()
+    async def login_and_get_token(self, username, password):
+        await self._auth()
+        await self._authenticate(username, password)
+        await self._get_token()
         return self.access_token

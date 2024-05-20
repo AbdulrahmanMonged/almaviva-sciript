@@ -20,8 +20,8 @@ def generate_random_str():
 def rotate_proxy(async_session=False):
     session = generate_random_str()
     if async_session:
-        return f"socks5://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-2m@geo.iproyal.com:32325"
+        return f"socks5://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325"
     return {
-        "http": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-2m@geo.iproyal.com:32325",
-        "https": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-2m@geo.iproyal.com:32325",
+        "http": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325",
+        "https": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325",
     }

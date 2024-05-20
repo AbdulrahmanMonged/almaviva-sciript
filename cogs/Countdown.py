@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-
 class Countdown:
     def __init__(self, det_h=0, det_min=0, det_sec=0) -> None:
         self.det_h: int = det_h
@@ -29,6 +28,7 @@ class Countdown:
             hour=self.det_h, minute=self.det_min, second=self.det_sec
         ) - (current_date + timedelta(days=1))
         return next_date.seconds
+    
 
     def __repr__(self) -> str:
         return f"{self.det_h}:{self.det_min}:{self.det_sec}"
