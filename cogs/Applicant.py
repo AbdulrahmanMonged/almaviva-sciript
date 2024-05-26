@@ -34,6 +34,12 @@ class Applicant:
 
     def add_document(self, doc):
         self.documents.append(doc)
+    
+    def remove_documents(self):
+        self.documents = []
+    
+    def set_passport_number(self, passportNumber):
+        self.passportNumber = passportNumber
 
     def get_applicant_json(self):
         try:

@@ -32,9 +32,10 @@ class App2(CTkFrame):
                 "phoneNumber": [None, 188],
             }
         )
+        self.toplevel_window = None
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-
+        
         self.navigation_frame = CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, sticky="nsew")
         self.navigation_frame.grid_rowconfigure(6, weight=1)
@@ -580,7 +581,7 @@ class App2(CTkFrame):
             return
         self.disable_home_data()
         countdown = Countdown(7, 55, 0)
-        future_countdown = Countdown(7, 59, 48)
+        future_countdown = Countdown(7, 59, 52)
         if self.start_with_timer_check.get() == "on":
             if not(countdown.get_remaining_time() > future_countdown.get_remaining_time()):
                 self.start_delay = self.after(
@@ -646,6 +647,18 @@ class App2(CTkFrame):
 
     def get_all_applicants(self):
         return [applicant.get_applicant_data() for applicant in self.applicants]
+    
+    def open_toplevel(self):
+        if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+            self.toplevel_window = ToplevelWindow(self)
+        else:
+            self.toplevel_window.focus()
+    
+    def add_accepted_account(self, user):
+        self.open_toplevel()
+        self.toplevel_window.add_account(user)
+        
+    
 
 
 class AccountFrame(CTkFrame):
@@ -676,3 +689,21 @@ class AccountFrame(CTkFrame):
 
     def get_applicant_data(self):
         return [self.name, self.password]
+
+
+class ToplevelWindow(CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("720x480")
+        self.title("الحسابات اللتي حصلت غلي موافقة")
+        self.grid_rowconfigure(0, weight=1)  # configure grid system
+        self.grid_columnconfigure(0, weight=1)
+
+        self.textbox = CTkTextbox(master=self, width=400, corner_radius=0, state="disabled", font=CTkFont(size=15))
+        self.textbox.grid(row=0, column=0, sticky="nsew")
+    
+    def add_account(self, account):
+        self.textbox.configure(state="normal")
+        self.textbox.insert("end", f"{account}\n")
+        self.textbox.configure(state="disabled")
+        self.textbox.see("end")

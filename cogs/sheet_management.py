@@ -46,3 +46,9 @@ def logout():
     current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     sh = gc.open("Almaviva-logs").sheet1
     sh.update_cell(secretvars.ID, 11, current_date)
+    
+def append_account(account):
+    sh = gc.open("Almaviva-logs").sheet1
+    val = sh.cell(secretvars.ID, 12).value
+    new_val = val + " - " + account if val else account
+    sh.update_cell(secretvars.ID, 12, new_val)

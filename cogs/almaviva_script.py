@@ -16,6 +16,8 @@ import time
 import aiohttp
 from aiohttp_socks import ProxyConnector
 import asyncio
+from awesometkinter.bidirender import render_text
+
 
 SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
 MAIN_PAGE = "https://egy.almaviva-visa.it/"
@@ -68,7 +70,9 @@ class Bot:
         self.accepted_accounts = []
         self.target_h = 7
         self.target_min = 59
-        self.target_sec = 48
+        self.target_sec = 52
+        self.copied_documents = self.documents
+        
         with open(resource_path("open_id_config.json")) as f:
             self.open_id_config = json.load(f)
 
@@ -84,6 +88,11 @@ class Bot:
         otp = CTkInputDialog(text="Enter OTP", title="OTP")
         self.otp = otp.get_input()
         return otp
+    
+    def get_another_passport(self):
+        self.window.print_in_log("الباسبورت مربوط بمستخدم اخر برجاء اضافة باسبورت جديد", color=danger)
+        passport = CTkInputDialog(text=render_text("قم بوضع رقم باسبورت جديد لان الرقم الحالي مربوط بمستخدم اخر"), title="Passport")
+        self.applicant.set_passport_number(passport.get_input())
 
     def verify_otp(self):
         try:
@@ -132,9 +141,10 @@ class Bot:
         if not token:
             token = self.token
         user = self.get_user(token)[0] if not (self.username) else self.username
-        webbrowser.open(
-            f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0"
-        )
+        with open("payment_link.txt", "a+") as f:
+            f.write(
+                f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0 - {user}\n"
+            )
         self.window.print_in_log("رابط بوابة الدفع", color=success)
         self.window.print_in_log(
             f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0",
@@ -148,10 +158,9 @@ class Bot:
                 f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0",
             ),
         ).start()
-        with open("payment_link.txt", "a+") as f:
-            f.write(
-                f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0 - {user}\n"
-            )
+        webbrowser.open(
+            f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0"
+        )
 
     def login(self):
         self.window.print_in_log("جاري تسجيل الدخول...", color=warning)
@@ -197,9 +206,11 @@ class Bot:
             }
             response = await session.get(api_url, headers=headers)
             self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
-            return await response.json()
+            result = await response.json()
+            print( f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of AVAILABLE SLOTS: {result}")
+            return result
         except Exception as e:
-            print(e)
+            print("SLOTS ERROR ", e)
             self.window.print_in_log("يوجد خطأ في الحصول علي اماكن للحجز", color=danger)
 
     async def async_send_otp(self, session, token):
@@ -225,7 +236,10 @@ class Bot:
                 data=json.dumps(data),
             )
             self.window.print_in_log("تم ارسال الكود... OTP", color=success)
+            result = await response.json()
+            print( f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP sent: {result}")
         except Exception as e:
+            print("OTP ERROR: ", e)
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
 
     async def async_upload_documents(self, session, token):
@@ -265,44 +279,67 @@ class Bot:
         self.applicant.set_new_data(data)
 
     async def async_book(self, slot, session, token):
-        user = self.get_user(token) if not (self.username) else [self.username, self.password]
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Recaptcha": self.recaptcha,
-            "Accept-Language": "en",
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/plain, */*",
-            "DeviceOperatingSystem": "web",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        }
-        body = {
-            "officeId": self.office_id,
-            "tripDate": "2024-06-30",
-            "tripDestination": "roma",
-            "termandcond": True,
-            "idServiceLevel": self.serviceLevel,
-            "applicants": [self.applicant.get_applicant_json()],
-            "slotStartDate": slot,
-            "source": "WEB",
-            "otp": self.otp,
-        }
-        URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
-        response = await session.post(URL, headers=headers, data=json.dumps(body))
-        self.window.print_in_log("جاري الحجز...", color=warning)
-        print(response.status, await response.text())
-        if response.status == 201:
-            self.booked = 1
-            threading.Thread(target=start_excution, args=(user[0], user[1])).start()
-            threading.Thread(target=update_login_status, args=("جاري الحجز...",))
-            threading.Thread(
-                target=update_operation_status, args=("تم الحجز بنجاح",)
-            ).start()
-            self.window.print_in_log("تم الحجز بنجاح", color=success)
-            data = await response.json()
-            self.payment_link = data["sessionId"]
-            self.main_thread_flag = 0
-            secretvars.MAIN_FLAG == 0
-            return data["sessionId"]
+        try:
+            user = self.get_user(token) if not (self.username) else [self.username, self.password]
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Recaptcha": self.recaptcha,
+                "Accept-Language": "en",
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/plain, */*",
+                "DeviceOperatingSystem": "web",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            }
+            body = {
+                "officeId": self.office_id,
+                "tripDate": "2024-06-30",
+                "tripDestination": "roma",
+                "termandcond": True,
+                "idServiceLevel": self.serviceLevel,
+                "applicants": [self.applicant.get_applicant_json()],
+                "slotStartDate": slot,
+                "source": "WEB",
+                "otp": self.otp,
+            }
+            URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
+            response = await session.post(URL, headers=headers, data=json.dumps(body))
+            self.window.print_in_log("جاري الحجز...", color=warning)
+            print(response.status, await response.text())
+            result = await response.json()
+            if response.status == 201:
+                self.booked = 1
+                threading.Thread(target=start_excution, args=(user[0], user[1])).start()
+                threading.Thread(target=update_login_status, args=("جاري الحجز...",))
+                threading.Thread(
+                    target=update_operation_status, args=("تم الحجز بنجاح",)
+                ).start()
+                self.window.print_in_log("تم الحجز بنجاح", color=success)
+                data = await response.json()
+                self.payment_link = data["sessionId"]
+                self.main_thread_flag = 0
+                secretvars.MAIN_FLAG == 0
+                return data["sessionId"]
+            elif response.status == 400:
+                if "Document" in result["message"]:
+                    self.window.print_in_log(
+                        "يوجد خطا في تحمييل المستندات....جاري اعادة محاولة رفع المستندات", color=danger
+                    )
+                    self.documents = self.copied_documents
+                    self.applicant.remove_documents()
+                    await self.async_upload_documents(session, token)
+                    return await self.async_book(slot, session, token)
+                if "Captcha" in result["message"]:
+                    self.window.print_in_log(
+                        "تم انتهاء الكابتشا...جاري حل الكابشتا من جديد", color=danger
+                    )
+                    await self.get_recaptcha()
+                    return await self.async_book(slot, session, token)
+                if "Passport" in result["message"]:
+                    self.get_another_passport()
+                    return await self.async_book(slot, session, token)
+        except Exception as e:
+            print("BOOKING ERROR", e)
+            return None
 
     async def async_after_confirmation(self, session, token):
         tasks = [
@@ -319,11 +356,11 @@ class Bot:
             for date in slots:
                 if self.booked:
                     return
-                payment_link = await self.async_book(
+                await self.async_book(
                     slot=date, session=session, token=token
                 )
-                if payment_link:
-                    self.write_payment_link(payment_link)
+                if self.payment_link:
+                    self.write_payment_link(self.payment_link)
                 if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                     return
         else:
@@ -380,6 +417,8 @@ class Bot:
                                 f"تم الحصول علي مواعيد للمستخدم ... {user}",
                                 color=success,
                             )
+                            threading.Thread(target=append_account, args=(user,)).start()
+                            self.window.add_accepted_account(user)
                             self.availability = True
                             self.FLAG = 0
                             self.accepted_accounts.append(token)
@@ -399,23 +438,26 @@ class Bot:
                         )
                         checking_FLAG = 0
         except Exception as e:
-            print(e)
+            print("Cheking for availabilty ERROR: ", e)
             await self.async_check_for_availabilty(token)
 
     async def async_login_handler(self, account):
-        connector = ProxyConnector.from_url(rotate_proxy(True))
-        async with aiohttp.ClientSession(connector=connector) as session:
-            auth = Authenticator(
-                window=self.window,
-                open_id_config=self.open_id_config,
-                config=self.config,
-                session=session,
-            )
-            token = await auth.login_and_get_token(account[0], account[1])
-            if not (auth.login_permission):
-                self.accounts.remove(account)
-                return
-            self.tokens.append(token)
+        try:
+            connector = ProxyConnector.from_url(rotate_proxy(True))
+            async with aiohttp.ClientSession(connector=connector) as session:
+                auth = Authenticator(
+                    window=self.window,
+                    open_id_config=self.open_id_config,
+                    config=self.config,
+                    session=session,
+                )
+                token = await auth.login_and_get_token(account[0], account[1])
+                if not (auth.login_permission):
+                    self.accounts.remove(account)
+                    return
+                self.tokens.append(token)
+        except Exception as e:
+            print(f"LOCING ERROR FOR - {account[0]}: ", e)
 
     async def login_handler(self):
         tasks = []
@@ -439,7 +481,7 @@ class Bot:
                 )
             await asyncio.gather(*tasks)
         except Exception as e:
-            print("GOT ERRORED: ", e)
+            print("TASKS ERROR: ", e)
             print(e)
 
     def start_booking(self):
@@ -462,20 +504,9 @@ class Bot:
                     color=success,
                 )
         except Exception as e:
-            print(e)
+            print("Main Thread Error", e)
             self.window.print_in_log(
                 f"حدث خطأ في البرنامج جاري اعادة المحاولة", color=danger
             )
-            while True:
-                if self.check_connection() == 200:
-                    break
-                else:
-                    self.window.print_in_log(
-                        f"يوجد مشكلة بالموقع حاليا... برجاء الانتظار حتي تتم معالجة المشكلة",
-                        color=danger,
-                    )
-                time.sleep(5)
             self.start_booking()
-            self.window.print_in_log(
-                f"حدث خطأ في البرنامج جاري اعادة المحاولة", color=danger
-            )
+            

@@ -17,7 +17,6 @@ def get_serial_num():
     )
     return result.stdout.strip("\n").split("\n")[-1].strip(" ")
 
-
 async def check_login(username, password, window: CTk):
     try:
         async with await psycopg.AsyncConnection.connect(secretvars.URI) as db:
@@ -32,15 +31,16 @@ async def check_login(username, password, window: CTk):
                             password.encode("utf8"), user[2].encode("utf8")
                         ):
                             if user[-2] == None:
-                                await cursor.execute(
-                                    "UPDATE LOGIN SET HARDWARE_ID = %s WHERE username = %s",
-                                    (
-                                        get_serial_num(),
-                                        username,
-                                    ),
-                                )
-                                await db.commit()
-                                await cursor.execute(
+                                if get_serial_num():
+                                    await cursor.execute(
+                                        "UPDATE LOGIN SET HARDWARE_ID = %s WHERE username = %s",
+                                        (
+                                            get_serial_num(),
+                                            username,
+                                        ),
+                                    )
+                                    await db.commit()
+                                    await cursor.execute(
                                     "UPDATE LOGIN SET attempts = attempts + 1 WHERE username = %s",
                                     (username,),
                                 )

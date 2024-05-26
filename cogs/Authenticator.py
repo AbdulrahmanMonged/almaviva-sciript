@@ -145,7 +145,14 @@ class Authenticator:
             return self._config["environment"]["sitekey"]
 
     async def login_and_get_token(self, username, password):
-        await self._auth()
-        await self._authenticate(username, password)
-        await self._get_token()
-        return self.access_token
+        try:
+            await self._auth()
+            await self._authenticate(username, password)
+            await self._get_token()
+            return self.access_token
+        except Exception as e:
+            print(e)
+            self.window.print_in_log(
+                f"تعذر تسجيل الدخول للحساب {username}", color=danger
+            )
+            self.login_permission = False
