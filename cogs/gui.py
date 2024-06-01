@@ -33,6 +33,7 @@ class App2(CTkFrame):
             }
         )
         self.toplevel_window = None
+        self.accounts_window = None
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         
@@ -151,6 +152,15 @@ class App2(CTkFrame):
             ),
         )
         self.add_applicant_btn.grid(row=2, column=1, sticky="s", padx=5, pady=5)
+        self.add_many_applicants_btn = CTkButton(
+            self.home_frame,
+            width=170,
+            text=render_text("اضافة مستخدمين"),
+            command=self.open_account_window,
+            fg_color=primary_btn,
+            hover_color=primary_hover
+        )
+        self.add_many_applicants_btn.grid(row=3, column=1, sticky="s", padx=5, pady=5)
         self.save_password_check = StringVar(value="on")
         self.start_with_timer_check = StringVar(value="on")
         self.save_password = CTkCheckBox(
@@ -167,29 +177,29 @@ class App2(CTkFrame):
         )
 
         self.office_id_lbl = CTkLabel(self.home_frame, text=render_text("المكتب"))
-        self.office_id_lbl.grid(row=3, column=2, sticky="s", padx=5, pady=5)
+        self.office_id_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
         self.office_id_option = CTkOptionMenu(
             self.home_frame, values=["Cairo", "Alexandria"], width=170
         )
-        self.office_id_option.grid(row=3, column=1, sticky="s", padx=5, pady=5)
+        self.office_id_option.grid(row=4, column=1, sticky="s", padx=5, pady=5)
         
         self.visa_price_lbl = CTkLabel(self.home_frame, text=render_text("سعر الفيزا"))
-        self.visa_price_lbl.grid(row=4, column=2, sticky="s", padx=5, pady=5)
+        self.visa_price_lbl.grid(row=5, column=2, sticky="s", padx=5, pady=5)
         self.visa_price_options = CTkOptionMenu(
             self.home_frame, values=["Standard - EGP 1750", "Vip - EGP 3810"], width=170
         )
-        self.visa_price_options.grid(row=4, column=1, sticky="s", padx=5, pady=5)
+        self.visa_price_options.grid(row=5, column=1, sticky="s", padx=5, pady=5)
         
         self.mode_lbl = CTkLabel(self.home_frame, text=render_text("الوضع"))
-        self.mode_lbl.grid(row=5, column=2, sticky="s", padx=5, pady=5)
+        self.mode_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
         self.mode_option = CTkOptionMenu(
             self.home_frame, values=[render_text("استكمال حجز"), render_text("البحث عن حجز")], width=170
         )
-        self.mode_option.grid(row=5, column=1, sticky="s", padx=5, pady=5)
+        self.mode_option.grid(row=6, column=1, sticky="s", padx=5, pady=5)
         
         
         
-        self.start_with_timer_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
+        self.start_with_timer_lbl.grid(row=7, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
             text="",
@@ -197,21 +207,21 @@ class App2(CTkFrame):
             onvalue="on",
             offvalue="off",
         )
-        self.start_with_timer_switch.grid(row=6, column=1, sticky="s", padx=5, pady=5)
+        self.start_with_timer_switch.grid(row=7, column=1, sticky="s", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
             text=render_text("بدا البرنامج"),
             command=self.start_execution,
         )
-        self.start_program_button.grid(row=8, column=2, sticky="s", padx=5, pady=5)
+        self.start_program_button.grid(row=9, column=2, sticky="s", padx=5, pady=5)
         self.home_disable_btn = CTkButton(
             self.home_frame,
             text=render_text("تعطيل البرنامج"),
             command=self.stop_execution,
             state="disabled",
         )
-        self.home_disable_btn.grid(row=8, column=0, sticky="s", padx=5, pady=5)
+        self.home_disable_btn.grid(row=9, column=0, sticky="s", padx=5, pady=5)
 
         #############################  ACCOUNT_INFORMATION ######################################
         self.birthdate_lbl = CTkLabel(
@@ -338,7 +348,7 @@ class App2(CTkFrame):
         )
         #############################################################################
 
-        self.home_frame.grid_rowconfigure(8, weight=1)
+        self.home_frame.grid_rowconfigure(9, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(3, weight=1)
 
@@ -402,10 +412,11 @@ class App2(CTkFrame):
     def frame_4_button_event(self):
         self.select_frame_by_name("frame_4")
 
-    def add_applicant(self, account_name, account_password):
-        if not (self.validation(self.home_frame)):
-            messagebox.showerror(title="خطأ", message="برجاء تحديد جميع الحقول")
-            return
+    def add_applicant(self, account_name, account_password, validate=True):
+        if validate:
+            if not (self.validation(self.home_frame)):
+                messagebox.showerror(title="خطأ", message="برجاء تحديد جميع الحقول")
+                return
         account_test = AccountFrame(
             account_name, account_password, False, self.fourth_frame
         )
@@ -654,6 +665,12 @@ class App2(CTkFrame):
         else:
             self.toplevel_window.focus()
     
+    def open_account_window(self):
+        if self.accounts_window is None or not self.accounts_window.winfo_exists():
+            self.accounts_window = AccountsManager(self)
+        else:
+            self.accounts_window.focus()
+            
     def add_accepted_account(self, user):
         self.open_toplevel()
         self.toplevel_window.add_account(user)
@@ -707,3 +724,41 @@ class ToplevelWindow(CTkToplevel):
         self.textbox.insert("end", f"{account}\n")
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
+        
+class AccountsManager(CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("720x480")
+        self.title("اضافة الحسابات")
+        self.rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.label1 = CTkLabel(self, text=render_text("الحسابات"), font=CTkFont(size=15))
+        self.label1.grid(row=0, column=0, sticky="nsew")
+        self.textbox = CTkTextbox(master=self, width=400, corner_radius=0, font=CTkFont(size=15))
+        self.textbox.grid(row=1, column=0, sticky="nsew", pady=10)
+        self.label2 = CTkLabel(self, text=render_text("كلمة المرور"), font=CTkFont(size=15))
+        self.label2.grid(row=2, column=0, sticky="nsew")
+        self.entry = CTkEntry(self, width=400, font=CTkFont(size=15))
+        self.entry.grid(row=3, column=0, sticky="nsew", pady=10)
+        self.add_btn = CTkButton(self, text=render_text("اضافة"), font=CTkFont(size=15), command=self.get_accounts)
+        self.add_btn.grid(row=4, column=0, sticky="nsew", pady=10)
+    
+    def get_accounts(self):
+        if not self.textbox.get("1.0", "end").strip():
+            messagebox.showerror("خطأ", "الرجاء ادخال الحسابات")
+            return
+        if not self.entry.get():
+            messagebox.showerror("خطأ", "الرجاء ادخال كلمة المرور")
+            return
+        self.entry.configure(state="disabled")
+        self.textbox.configure(state="disabled")
+        self.add_btn.configure(state="disabled")
+        accounts = [account for account in self.textbox.get("1.0", "end").split("\n") if account]
+        for account in accounts:
+            self.master.add_applicant(
+                account, self.entry.get().strip(), False
+            )
+        self.destroy()
+        return
+    
+    

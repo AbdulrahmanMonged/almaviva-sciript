@@ -1,7 +1,14 @@
 import sys
 import os
 import random
-import pprint
+
+countries = ["eg", "it"]
+proxies = [
+    "socks5://customer-AlmavivaScript1337_iwH5v-cc-{0}:T8AXFwjfi9cRy@pr.oxylabs.io:7777",
+    "socks5://95421323-zone-custom-region-{0}:Dwv35snj@ade.360s5.com:3600",
+    "socks5://b8pb7rusmp1hwbj-country-{0}:lxccpolkxgldhaw@rp.proxyscrape.com:6060",
+    "socks5://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-{0}@geo.iproyal.com:32325",
+]
 
 
 def resource_path(relative_path):
@@ -18,10 +25,11 @@ def generate_random_str():
 
 
 def rotate_proxy(async_session=False):
-    session = generate_random_str()
+    random_proxy = random.choice(proxies).format(random.choice(countries))
+
     if async_session:
-        return f"socks5://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325"
+        return random_proxy
     return {
-        "http": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325",
-        "https": f"socks5h://h6gpTLfsq8tdFOnF:q5eEgvQgZhRkk87P_country-it_session-{session}_lifetime-10m_streaming-1@geo.iproyal.com:32325",
+        "http": random_proxy,
+        "https": random_proxy,
     }

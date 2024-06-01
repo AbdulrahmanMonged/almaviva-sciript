@@ -152,6 +152,8 @@ class Authenticator:
             return self.access_token
         except Exception as e:
             print(e)
+            if "Server" in e:
+                return await self.login_and_get_token(username, password)
             self.window.print_in_log(
                 f"تعذر تسجيل الدخول للحساب {username}", color=danger
             )
