@@ -10,7 +10,7 @@ from threading import Thread
 import webbrowser
 from .Countdown import Countdown
 from . import secretvars
-from .sheet_management import initialize_sheet
+from .sheet_management import db
 
 
 class App2(CTkFrame):
@@ -193,7 +193,7 @@ class App2(CTkFrame):
         self.mode_lbl = CTkLabel(self.home_frame, text=render_text("الوضع"))
         self.mode_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
         self.mode_option = CTkOptionMenu(
-            self.home_frame, values=[render_text("استكمال حجز"), render_text("البحث عن حجز")], width=170
+            self.home_frame, values=[render_text("البحث عن حجز") ,render_text("استكمال حجز")], width=170
         )
         self.mode_option.grid(row=6, column=1, sticky="s", padx=5, pady=5)
         
@@ -208,6 +208,10 @@ class App2(CTkFrame):
             offvalue="off",
         )
         self.start_with_timer_switch.grid(row=7, column=1, sticky="s", padx=5, pady=5)
+        self.otp_label = CTkLabel(self.home_frame, text="OTP")
+        self.otp_label.grid(row=8, column=2, sticky="nsew", padx=5, pady=5)
+        self.otp_entry = CTkEntry(self.home_frame)
+        self.otp_entry.grid(row=8, column=1, sticky="nsew", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -300,44 +304,45 @@ class App2(CTkFrame):
             self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
         )
         self.passport_img_state.grid(row=0, column=0, sticky="nsew")
-
-        self.nulla_img_lbl = CTkLabel(self.third_frame, text=render_text("صورة الهوية"))
-        self.nulla_img_btn = CTkButton(
-            self.third_frame,
-            text=render_text("تحميل"),
-            command=lambda: self.browse_file("nulla"),
-        )
-        self.nulla_img_btn.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-        self.nulla_img_lbl.grid(row=1, column=2, sticky="nsew")
-        self.nulla_img_state = CTkLabel(
-            self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
-        )
-        self.nulla_img_state.grid(row=1, column=0, sticky="nsew")
-        self.phonenum_img_lbl = CTkLabel(
-            self.third_frame, text=render_text("صورة رقم الهاتف")
-        )
-        self.phonenum_img_btn = CTkButton(
-            self.third_frame,
-            text=render_text("تحميل"),
-            command=lambda: self.browse_file("phoneNumber"),
-        )
-        self.phonenum_img_btn.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-        self.phonenum_img_lbl.grid(row=2, column=2, sticky="nsew")
-        self.phonenum_img_state = CTkLabel(
-            self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
-        )
-        self.phonenum_img_state.grid(row=2, column=0, sticky="nsew")
+        if self.visa_id == 3:
+            self.nulla_img_lbl = CTkLabel(self.third_frame, text=render_text("صورة العقد"))
+            self.nulla_img_btn = CTkButton(
+                self.third_frame,
+                text=render_text("تحميل"),
+                command=lambda: self.browse_file("nulla"),
+            )
+            self.nulla_img_btn.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+            self.nulla_img_lbl.grid(row=1, column=2, sticky="nsew")
+            self.nulla_img_state = CTkLabel(
+                self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
+            )
+            self.nulla_img_state.grid(row=1, column=0, sticky="nsew")
+            self.phonenum_img_lbl = CTkLabel(
+                self.third_frame, text=render_text("صورة رقم الهاتف")
+            )
+            self.phonenum_img_btn = CTkButton(
+                self.third_frame,
+                text=render_text("تحميل"),
+                command=lambda: self.browse_file("phoneNumber"),
+            )
+            self.phonenum_img_btn.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
+            self.phonenum_img_lbl.grid(row=2, column=2, sticky="nsew")
+            self.phonenum_img_state = CTkLabel(
+                self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
+            )
+            self.phonenum_img_state.grid(row=2, column=0, sticky="nsew")
         self.img_save_button = CTkButton(
             self.third_frame, text=render_text("حفظ"), command=self.save_img_data
         )
-        self.img_save_button.grid(row=3, column=2, sticky="s", padx=5, pady=5)
+
+        self.img_save_button.grid(row=4, column=2, sticky="s", padx=5, pady=5)
         self.img_edit_button = CTkButton(
             self.third_frame,
             text=render_text("تعديل"),
             command=self.edit_img_data,
             state="disabled",
         )
-        self.img_edit_button.grid(row=3, column=0, sticky="s", padx=5, pady=5)
+        self.img_edit_button.grid(row=4, column=0, sticky="s", padx=5, pady=5)
 
         #############################ACCOUNTS FRAME######################################
         self.account_test = AccountFrame(
@@ -350,7 +355,7 @@ class App2(CTkFrame):
 
         self.home_frame.grid_rowconfigure(9, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
-        self.third_frame.grid_rowconfigure(3, weight=1)
+        self.third_frame.grid_rowconfigure(4, weight=1)
 
         #############################################################################
 
@@ -414,7 +419,7 @@ class App2(CTkFrame):
 
     def add_applicant(self, account_name, account_password, validate=True):
         if validate:
-            if not (self.validation(self.home_frame)):
+            if self.username_entry.get() == "" or self.password_entry.get() == "":
                 messagebox.showerror(title="خطأ", message="برجاء تحديد جميع الحقول")
                 return
         account_test = AccountFrame(
@@ -591,8 +596,8 @@ class App2(CTkFrame):
         if not (self.validate_all_fields()):
             return
         self.disable_home_data()
-        countdown = Countdown(7, 55, 0)
-        future_countdown = Countdown(7, 59, 52)
+        countdown = Countdown(8, 55, 0)
+        future_countdown = Countdown(8, 59, 54)
         if self.start_with_timer_check.get() == "on":
             if not(countdown.get_remaining_time() > future_countdown.get_remaining_time()):
                 self.start_delay = self.after(
@@ -618,19 +623,20 @@ class App2(CTkFrame):
             self.visa_id,
             0 if self.mode_option.get() == render_text("استكمال حجز") else 1,
             1 if self.visa_price_options.get() == "Standard - EGP 1750" else 2,
-            self.start_with_timer_check.get() == "on"
+            self.start_with_timer_check.get() == "on",
+            self.otp_entry.get()
         )
         self.bot.accounts = self.get_all_applicants()
         bot_thread = Thread(target=self.bot.start_booking)
         secretvars.Thread_Pool.append(bot_thread)
         bot_thread.start()
-        if not(secretvars.FIRST_RUN):
-            sheet = Thread(
-                    target=initialize_sheet,
-                    args=(secretvars.USERNAME, secretvars.PASSWORD),
-                )
-            secretvars.Thread_Pool.append(sheet)
-            sheet.start()
+        # if not(secretvars.FIRST_RUN):
+        #     sheet = Thread(
+        #             target=initialize_sheet,
+        #             args=(secretvars.USERNAME, secretvars.PASSWORD),
+        #         )
+        #     secretvars.Thread_Pool.append(sheet)
+        #     sheet.start()
 
     def right_click_event(self, event):
         clipboard_content = event.widget.clipboard_get()
@@ -720,6 +726,8 @@ class ToplevelWindow(CTkToplevel):
         self.textbox.grid(row=0, column=0, sticky="nsew")
     
     def add_account(self, account):
+        if account in self.textbox.get("1.0", "end").split("\n"):
+            return
         self.textbox.configure(state="normal")
         self.textbox.insert("end", f"{account}\n")
         self.textbox.configure(state="disabled")
@@ -760,5 +768,4 @@ class AccountsManager(CTkToplevel):
             )
         self.destroy()
         return
-    
     

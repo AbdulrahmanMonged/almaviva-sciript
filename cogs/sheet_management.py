@@ -1,54 +1,40 @@
-from . import secretvars
 from datetime import datetime
-import gspread
-from .utility import resource_path
+from uuid import uuid4
+import psycopg
+from datetime import datetime
+import asyncio
+import socket
+URI = "postgresql://AbdulrahmanMonged:YdDtzrB46JCU@ep-lucky-tree-44958310.eu-central-1.aws.neon.tech/almaviva_db?sslmode=require"
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-gc = gspread.service_account(filename=resource_path("account.json"))
-
-
-def initialize_sheet(logged_user, logged_password):
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    sh = gc.open("Almaviva-logs").sheet1
-    response = sh.append_row([logged_user, logged_password, current_date])["updates"][
-        "updatedRange"
-    ]
-    secretvars.ID = int(response.split(":")[-1][1:])
-    secretvars.FIRST_RUN = True
-
-
-def start_excution(site_name, site_password):
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    sh = gc.open("Almaviva-logs").sheet1
-    sh.update_cell(secretvars.ID, 4, site_name)
-    sh.update_cell(secretvars.ID, 5, site_password)
-    sh.update_cell(secretvars.ID, 7, current_date)
-
-
-def update_login_status(status):
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    sh = gc.open("Almaviva-logs").sheet1
-    sh.update_cell(secretvars.ID, 6, current_date)
-    sh.update_cell(secretvars.ID, 8, status)
-    sh.update_cell(secretvars.ID, 9, "Waiting...")
-
-
-def update_operation_status(status):
-    sh = gc.open("Almaviva-logs").sheet1
-    sh.update_cell(secretvars.ID, 9, status)
-
-
-def payment_gate_link(link):
-    sh = gc.open("Almaviva-logs").sheet1
-    sh.update_cell(secretvars.ID, 10, link)
-
-
-def logout():
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    sh = gc.open("Almaviva-logs").sheet1
-    sh.update_cell(secretvars.ID, 11, current_date)
+class dbManagement:
+    def __init__(self):
+        self.db = None
+        self.curr = None
+        self.key = None
+        self.first_run = False
+        asyncio.run(self.init_connection())
     
-def append_account(account):
-    sh = gc.open("Almaviva-logs").sheet1
-    val = sh.cell(secretvars.ID, 12).value
-    new_val = val + " - " + account if val else account
-    sh.update_cell(secretvars.ID, 12, new_val)
+    async def init_connection(self):
+        self.db = await psycopg.AsyncConnection.connect(URI)
+        self.curr = self.db.cursor()
+    
+    async def start_excution(self, logged_user, logged_password):
+        self.key = uuid4()
+        await self.curr.execute(
+            "INSERT INTO operations (id, username, password, program_login_time, IP) VALUES (%s ,%s, %s, %s, %s)",
+            (self.key ,logged_user, logged_password, datetime.now(), socket.gethostbyname(socket.gethostname())),
+        )
+        await self.db.commit()
+        self.first_run = True
+    async def finish_excution(self, siteName, sitePassword, paymentGate):
+        await self.curr.execute(
+            "UPDATE operations SET site_username = %s, site_password = %s, booking_time = %s, payment_gate = %s WHERE id = %s",
+            (siteName, sitePassword, datetime.now(), paymentGate, self.key),
+        )
+        await self.db.commit()
+    
+    async def close_connection(self):
+        await self.db.close()
+
+db = dbManagement()

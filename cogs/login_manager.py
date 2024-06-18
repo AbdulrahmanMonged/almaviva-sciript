@@ -1,5 +1,4 @@
 import psycopg
-import asyncio
 import bcrypt
 import subprocess
 from customtkinter import CTk
@@ -7,8 +6,6 @@ from tkinter import messagebox
 from .colors import *
 from awesometkinter.bidirender import render_text
 from . import secretvars
-
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def get_serial_num():

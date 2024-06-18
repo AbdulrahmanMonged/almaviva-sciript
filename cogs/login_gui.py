@@ -7,10 +7,11 @@ from threading import Thread
 from tkinter import messagebox
 from awesometkinter.bidirender import render_text
 from . import secretvars
-from .sheet_management import initialize_sheet
+from .sheet_management import db
 from . import gui
 import os
 from .utility import resource_path
+import asyncio
 
 
 class App(CTk):
@@ -40,6 +41,7 @@ class App(CTk):
         self.status = CTkLabel(self, text="", font=CTkFont(family="Segoe UI", size=15))
         self.status.place(relx=0.5, rely=0.1, anchor=CENTER)
         self.bind("<Return>", self.submit)
+        
 
     def submit(self, event=None):
         if self.validation():
@@ -76,14 +78,12 @@ class App(CTk):
 
     def destroy_login(self):
         try:
-            sheet = Thread(
-                target=initialize_sheet,
-                args=(self.username_entry.get(), self.password_entry.get()),
+            thread = Thread(
+                target=lambda: asyncio.run(
+                    db.start_excution(self.username_entry.get(), self.password_entry.get())
+                )
             )
-            secretvars.Thread_Pool.append(sheet)
-            sheet.start()
-            secretvars.USERNAME = self.username_entry.get()
-            secretvars.PASSWORD = self.password_entry.get()
+            thread.start()
             for child in self.winfo_children():
                 child.destroy()
         except Exception as e:
