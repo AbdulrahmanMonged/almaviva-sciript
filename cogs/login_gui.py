@@ -41,21 +41,18 @@ class App(CTk):
         self.status = CTkLabel(self, text="", font=CTkFont(family="Segoe UI", size=15))
         self.status.place(relx=0.5, rely=0.1, anchor=CENTER)
         self.bind("<Return>", self.submit)
-        
 
     def submit(self, event=None):
         if self.validation():
             self.disable()
             self.status.configure(text=render_text("جاري التحقق"), text_color=info)
-            thread = Thread(
+            Thread(
                 target=lambda: asyncio.run(
                     check_login(
                         self.username_entry.get(), self.password_entry.get(), self
                     )
                 )
-            )
-            secretvars.Thread_Pool.append(thread)
-            thread.start()
+            ).start()
 
     def validation(self):
         if self.username_entry.get() == "" or self.password_entry.get() == "":
@@ -80,7 +77,9 @@ class App(CTk):
         try:
             thread = Thread(
                 target=lambda: asyncio.run(
-                    db.start_excution(self.username_entry.get(), self.password_entry.get())
+                    db.start_excution(
+                        self.username_entry.get(), self.password_entry.get()
+                    )
                 )
             )
             thread.start()

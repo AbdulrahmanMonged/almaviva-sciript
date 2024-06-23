@@ -14,6 +14,12 @@ def get_serial_num():
     )
     return result.stdout.strip("\n").split("\n")[-1].strip(" ")
 
+def get_baseboard_num():
+    result = subprocess.run(
+        ["Wmic", "baseboard", "get", "serialnumber"], capture_output=True, text=True
+    )
+    return result.stdout.strip("\n").split("\n")[-1].strip(" ")
+
 async def check_login(username, password, window: CTk):
     try:
         async with await psycopg.AsyncConnection.connect(secretvars.URI) as db:
@@ -32,15 +38,15 @@ async def check_login(username, password, window: CTk):
                                     await cursor.execute(
                                         "UPDATE LOGIN SET HARDWARE_ID = %s WHERE username = %s",
                                         (
-                                            get_serial_num(),
+                                            get_baseboard_num(),
                                             username,
                                         ),
                                     )
                                     await db.commit()
                                     await cursor.execute(
-                                    "UPDATE LOGIN SET attempts = attempts + 1 WHERE username = %s",
-                                    (username,),
-                                )
+                                        "UPDATE LOGIN SET attempts = attempts + 1 WHERE username = %s",
+                                        (username,),
+                                    )
                                 await db.commit()
                                 window.status.configure(
                                     text=render_text("تم تسجيل الدخول بنجاح"),
@@ -49,7 +55,7 @@ async def check_login(username, password, window: CTk):
                                 window.init_canva()
                                 return
                             else:
-                                if user[-2] == get_serial_num():
+                                if user[-2] == get_baseboard_num():
                                     await cursor.execute(
                                         "UPDATE LOGIN SET attempts = attempts + 1 WHERE username = %s",
                                         (username,),

@@ -126,8 +126,18 @@ class Bot:
                 headers=headers,
                 data=json.dumps(data),
             )
-            if response.status == 200:
+            result = await response.json()
+            print(
+                f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP Verification: {result}"
+            )
+            if response.status == 200 and result:
                 self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
+            if not (result):
+                self.window.print_in_log(
+                    "يوجد خطأ في التحقق من الكود... OTP", color=danger
+                )
+                self.get_otp()
+                await self.verify_otp(session)
 
         except Exception as e:
             self.window.print_in_log("يوجد خطأ في التحقق من الكود... OTP")
@@ -237,10 +247,17 @@ class Bot:
                 self.get_otp()
                 await self.verify_otp(session)
             elif response.status == 401:
+
+                result = await response.text()
+                print(
+                    f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP sent: {result}"
+                )
+                self.window.print_in_log("حدث خطاء في ارسال الكود... OTP", color=danger)
                 await self.async_login_handler(
                     [self.username, self.password], regenerate_token=True
                 )
                 await self.async_send_otp(session)
+                await self.async_check_for_availabilty(self.username, self.token)
         except Exception as e:
             print("OTP ERROR: ", e)
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
@@ -351,14 +368,14 @@ class Bot:
             async with aiohttp.ClientSession(connector=connector) as session:
                 tasks = [
                     self.async_get_available_slots(session),
-                    self.async_get_account_data(session),
                     self.async_upload_documents(session),
                     self.get_recaptcha(),
                 ]
                 if self.availability and (not self.booked):
-                    responses = await asyncio.gather(*tasks)
+                    await self.async_get_account_data(session)
                     if not self.otp:
-                        await self.async_send_otp(session),
+                        await self.async_send_otp(session)
+                    responses = await asyncio.gather(*tasks)
                     slots = responses[0]
                     self.applicant.set_bot(self)
 
@@ -485,7 +502,7 @@ class Bot:
     async def login_handler(self):
         tasks = []
         for account in self.accounts:
-            for _ in range(4):
+            for _ in range(4 if self.mode else 1):
                 if account in self.accounts:
                     tasks.append(asyncio.create_task(self.async_login_handler(account)))
                 else:

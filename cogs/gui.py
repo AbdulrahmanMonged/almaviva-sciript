@@ -16,6 +16,9 @@ from .sheet_management import db
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
+        self.target_hour = 8
+        self.target_minute = 59
+        self.target_second = 54
         self.count = 0
         self.labels = []
         self.applicant = None
@@ -199,7 +202,7 @@ class App2(CTkFrame):
         
         
         
-        self.start_with_timer_lbl.grid(row=7, column=2, sticky="s", padx=5, pady=5)
+        self.start_with_timer_lbl.grid(row=8, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
             text="",
@@ -207,11 +210,11 @@ class App2(CTkFrame):
             onvalue="on",
             offvalue="off",
         )
-        self.start_with_timer_switch.grid(row=7, column=1, sticky="s", padx=5, pady=5)
+        self.start_with_timer_switch.grid(row=8, column=1, sticky="s", padx=5, pady=5)
         self.otp_label = CTkLabel(self.home_frame, text="OTP")
-        self.otp_label.grid(row=8, column=2, sticky="nsew", padx=5, pady=5)
+        self.otp_label.grid(row=7, column=2, sticky="nsew", padx=5, pady=5)
         self.otp_entry = CTkEntry(self.home_frame)
-        self.otp_entry.grid(row=8, column=1, sticky="nsew", padx=5, pady=5)
+        self.otp_entry.grid(row=7, column=1, sticky="nsew", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -596,8 +599,8 @@ class App2(CTkFrame):
         if not (self.validate_all_fields()):
             return
         self.disable_home_data()
-        countdown = Countdown(8, 55, 0)
-        future_countdown = Countdown(8, 59, 54)
+        countdown = Countdown(self.target_hour, 55, 0)
+        future_countdown = Countdown(self.target_hour, self.target_minute, self.target_second)
         if self.start_with_timer_check.get() == "on":
             if not(countdown.get_remaining_time() > future_countdown.get_remaining_time()):
                 self.start_delay = self.after(
@@ -627,16 +630,7 @@ class App2(CTkFrame):
             self.otp_entry.get()
         )
         self.bot.accounts = self.get_all_applicants()
-        bot_thread = Thread(target=self.bot.start_booking)
-        secretvars.Thread_Pool.append(bot_thread)
-        bot_thread.start()
-        # if not(secretvars.FIRST_RUN):
-        #     sheet = Thread(
-        #             target=initialize_sheet,
-        #             args=(secretvars.USERNAME, secretvars.PASSWORD),
-        #         )
-        #     secretvars.Thread_Pool.append(sheet)
-        #     sheet.start()
+        Thread(target=self.bot.start_booking).start()
 
     def right_click_event(self, event):
         clipboard_content = event.widget.clipboard_get()
