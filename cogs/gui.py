@@ -16,7 +16,7 @@ from .sheet_management import db
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
-        self.target_hour = 8
+        self.target_hour = 7
         self.target_minute = 59
         self.target_second = 54
         self.count = 0

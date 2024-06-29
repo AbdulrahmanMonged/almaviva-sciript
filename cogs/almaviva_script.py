@@ -62,7 +62,7 @@ class Bot:
         self.countdown = countdown
         self.FLAG = 1
         self.booked = 0
-        self.target_h = 8
+        self.target_h = 7
         self.target_min = 59
         self.target_sec = 54
         self.copied_documents = self.documents
@@ -149,7 +149,7 @@ class Bot:
                 {
                     "type": "ReCaptchaV2TaskProxyLess",
                     "websiteURL": "https://egy.almaviva-visa.it/appointment",
-                    "websiteKey": "6LewmsUpAAAAAOJYsdlzBrXXYzKvMwTqzrw-H-qP",
+                    "websiteKey": "6Lc4mLUpAAAAAN0TB4rHNAQS1Zbt5yfghaZ17w-A",
                     "isInvisible": True,
                 }
             )
@@ -370,12 +370,12 @@ class Bot:
                     self.async_get_available_slots(session),
                     self.async_upload_documents(session),
                     self.get_recaptcha(),
+                    self.async_get_account_data(session),
                 ]
                 if self.availability and (not self.booked):
-                    await self.async_get_account_data(session)
+                    responses = await asyncio.gather(*tasks)
                     if not self.otp:
                         await self.async_send_otp(session)
-                    responses = await asyncio.gather(*tasks)
                     slots = responses[0]
                     self.applicant.set_bot(self)
 
