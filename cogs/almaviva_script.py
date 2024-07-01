@@ -523,6 +523,7 @@ class Bot:
             if not (self.mode):
                 self.accounts = [self.accounts[0]]
                 self.username = self.accounts[0][0]
+                self.password = self.accounts[0][1]
                 asyncio.run(self.login_handler())
                 self.token = self.logged_users[self.username][1]
             else:
