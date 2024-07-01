@@ -1,12 +1,40 @@
-{
+CONFIG = {
+    "environment": {
+        "production": False,
+        "authConfigIssuer": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce",
+        "authConfigRedirectUri": "https://egy.almaviva-visa.it/",
+        "authConfigClientId": "aa-visasys-public",
+        "authConfigResponseType": "code",
+        "authConfigScope": "openid profile email",
+        "cmsUrl": "https://egyapi.almaviva-visa.it/cms/",
+        "cmsAPI": "rest",
+        "configurationManagerAPI": "https://egyapi.almaviva-visa.it/configuration-manager",
+        "reservationManagerApi": "https://egyapi.almaviva-visa.it/reservation-manager",
+        "cmsBeApi": "https://egyapi.almaviva-visa.it/cms-be",
+        "sitekey": "6LewmsUpAAAAAOJYsdlzBrXXYzKvMwTqzrw-H-qP",
+        "paymentProvider": "MASTERCARD",
+        "codeISOAlpha3": "EGY",
+        "title": "AlmavivA Visa Egypt",
+        "metaDescription": "AlmavivA Egypt Visa Services is your partner in Egypt for all of your Italian visa needs. Consult guides, get the list of requirements and create your visa application.",
+        "metaKeywords": "visa, immigration, consulate, italy, embassy, spouse visa, working visa, italy visa, schengen visa, schengen visa application, schengen, visa application, italy schengen visa application form egypt, italy visa application form egypt, egypt visa application, visa application center, italy visa application center, italy immigrant visa application, visa application center cairo, visa application center alexandria",
+        "emailInfo": "eg.info-visa@almaviva-visa.it",
+        "emailGroups": "eg.gruppi@almaviva-visa.it",
+    },
+    "mapConfiguration": {
+        "defaultLatitute": "41.902782",
+        "defaultLongitude": "12.496366",
+    },
+}
+
+OPEN_ID_CONFIG = {
     "issuer": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce",
     "authorization_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth",
     "token_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/token",
     "introspection_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/token/introspect",
     "userinfo_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/userinfo",
     "end_session_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/logout",
-    "frontchannel_logout_session_supported": true,
-    "frontchannel_logout_supported": true,
+    "frontchannel_logout_session_supported": True,
+    "frontchannel_logout_supported": True,
     "jwks_uri": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/certs",
     "check_session_iframe": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/login-status-iframe.html",
     "grant_types_supported": [
@@ -16,7 +44,7 @@
         "password",
         "client_credentials",
         "urn:ietf:params:oauth:grant-type:device_code",
-        "urn:openid:params:grant-type:ciba"
+        "urn:openid:params:grant-type:ciba",
     ],
     "acr_values_supported": ["0", "1"],
     "response_types_supported": [
@@ -27,7 +55,7 @@
         "id_token token",
         "code id_token",
         "code token",
-        "code id_token token"
+        "code id_token token",
     ],
     "subject_types_supported": ["public", "pairwise"],
     "id_token_signing_alg_values_supported": [
@@ -42,20 +70,16 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
-    "id_token_encryption_alg_values_supported": [
-        "RSA-OAEP",
-        "RSA-OAEP-256",
-        "RSA1_5"
-    ],
+    "id_token_encryption_alg_values_supported": ["RSA-OAEP", "RSA-OAEP-256", "RSA1_5"],
     "id_token_encryption_enc_values_supported": [
         "A256GCM",
         "A192GCM",
         "A128GCM",
         "A128CBC-HS256",
         "A192CBC-HS384",
-        "A256CBC-HS512"
+        "A256CBC-HS512",
     ],
     "userinfo_signing_alg_values_supported": [
         "PS384",
@@ -70,20 +94,16 @@
         "PS256",
         "PS512",
         "RS512",
-        "none"
+        "none",
     ],
-    "userinfo_encryption_alg_values_supported": [
-        "RSA-OAEP",
-        "RSA-OAEP-256",
-        "RSA1_5"
-    ],
+    "userinfo_encryption_alg_values_supported": ["RSA-OAEP", "RSA-OAEP-256", "RSA1_5"],
     "userinfo_encryption_enc_values_supported": [
         "A256GCM",
         "A192GCM",
         "A128GCM",
         "A128CBC-HS256",
         "A192CBC-HS384",
-        "A256CBC-HS512"
+        "A256CBC-HS512",
     ],
     "request_object_signing_alg_values_supported": [
         "PS384",
@@ -98,12 +118,12 @@
         "PS256",
         "PS512",
         "RS512",
-        "none"
+        "none",
     ],
     "request_object_encryption_alg_values_supported": [
         "RSA-OAEP",
         "RSA-OAEP-256",
-        "RSA1_5"
+        "RSA1_5",
     ],
     "request_object_encryption_enc_values_supported": [
         "A256GCM",
@@ -111,7 +131,7 @@
         "A128GCM",
         "A128CBC-HS256",
         "A192CBC-HS384",
-        "A256CBC-HS512"
+        "A256CBC-HS512",
     ],
     "response_modes_supported": [
         "query",
@@ -120,7 +140,7 @@
         "query.jwt",
         "fragment.jwt",
         "form_post.jwt",
-        "jwt"
+        "jwt",
     ],
     "registration_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/clients-registrations/openid-connect",
     "token_endpoint_auth_methods_supported": [
@@ -128,7 +148,7 @@
         "client_secret_basic",
         "client_secret_post",
         "tls_client_auth",
-        "client_secret_jwt"
+        "client_secret_jwt",
     ],
     "token_endpoint_auth_signing_alg_values_supported": [
         "PS384",
@@ -142,14 +162,14 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
     "introspection_endpoint_auth_methods_supported": [
         "private_key_jwt",
         "client_secret_basic",
         "client_secret_post",
         "tls_client_auth",
-        "client_secret_jwt"
+        "client_secret_jwt",
     ],
     "introspection_endpoint_auth_signing_alg_values_supported": [
         "PS384",
@@ -163,7 +183,7 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
     "authorization_signing_alg_values_supported": [
         "PS384",
@@ -177,12 +197,12 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
     "authorization_encryption_alg_values_supported": [
         "RSA-OAEP",
         "RSA-OAEP-256",
-        "RSA1_5"
+        "RSA1_5",
     ],
     "authorization_encryption_enc_values_supported": [
         "A256GCM",
@@ -190,7 +210,7 @@
         "A128GCM",
         "A128CBC-HS256",
         "A192CBC-HS384",
-        "A256CBC-HS512"
+        "A256CBC-HS512",
     ],
     "claims_supported": [
         "aud",
@@ -202,10 +222,10 @@
         "family_name",
         "preferred_username",
         "email",
-        "acr"
+        "acr",
     ],
     "claim_types_supported": ["normal"],
-    "claims_parameter_supported": true,
+    "claims_parameter_supported": True,
     "scopes_supported": [
         "openid",
         "phone",
@@ -216,20 +236,20 @@
         "acr",
         "profile",
         "web-origins",
-        "offline_access"
+        "offline_access",
     ],
-    "request_parameter_supported": true,
-    "request_uri_parameter_supported": true,
-    "require_request_uri_registration": true,
+    "request_parameter_supported": True,
+    "request_uri_parameter_supported": True,
+    "require_request_uri_registration": True,
     "code_challenge_methods_supported": ["plain", "S256"],
-    "tls_client_certificate_bound_access_tokens": true,
+    "tls_client_certificate_bound_access_tokens": True,
     "revocation_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/revoke",
     "revocation_endpoint_auth_methods_supported": [
         "private_key_jwt",
         "client_secret_basic",
         "client_secret_post",
         "tls_client_auth",
-        "client_secret_jwt"
+        "client_secret_jwt",
     ],
     "revocation_endpoint_auth_signing_alg_values_supported": [
         "PS384",
@@ -243,10 +263,10 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
-    "backchannel_logout_supported": true,
-    "backchannel_logout_session_supported": true,
+    "backchannel_logout_supported": True,
+    "backchannel_logout_session_supported": True,
     "device_authorization_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth/device",
     "backchannel_token_delivery_modes_supported": ["poll", "ping"],
     "backchannel_authentication_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/ext/ciba/auth",
@@ -259,9 +279,9 @@
         "ES512",
         "PS256",
         "PS512",
-        "RS512"
+        "RS512",
     ],
-    "require_pushed_authorization_requests": false,
+    "require_pushed_authorization_requests": False,
     "pushed_authorization_request_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/ext/par/request",
     "mtls_endpoint_aliases": {
         "token_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/token",
@@ -271,6 +291,6 @@
         "registration_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/clients-registrations/openid-connect",
         "userinfo_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/userinfo",
         "pushed_authorization_request_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/ext/par/request",
-        "backchannel_authentication_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/ext/ciba/auth"
-    }
+        "backchannel_authentication_endpoint": "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/ext/ciba/auth",
+    },
 }

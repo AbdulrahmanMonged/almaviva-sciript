@@ -1,5 +1,4 @@
 import threading
-import requests
 import capsolver
 import json
 from .Document import Document
@@ -8,25 +7,16 @@ from customtkinter import CTkInputDialog
 from .Authenticator import Authenticator
 from .sheet_management import *
 import webbrowser
-from .utility import rotate_proxy, resource_path
+from .utility import rotate_proxy
 from . import secretvars
 from .Countdown import Countdown
 import aiohttp
 from aiohttp_socks import ProxyConnector
 import asyncio
 from awesometkinter.bidirender import render_text
+from .required_info import *
 
-
-SIGN_IN_URL = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/auth?response_type=code&client_id=aa-visasys-public&state=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll&redirect_uri=https%3A%2F%2Fegy.almaviva-visa.it%2F&scope=openid%20profile%20email&code_challenge=DGqFJkz70cuSjv8tiajECZNahV4AhAhPauxkp3Q4rZc&code_challenge_method=S256&nonce=dDF5U0ZtZ0VVbDFUT2VVMjlOYXd3SWRvLmVyeUpOVy0zYW9zbV8yYnRNdWll"
-MAIN_PAGE = "https://egy.almaviva-visa.it/"
-capsolver.api_key = "CAP-C00F3CDADDD84311E2252F31AE7CDD42"
-api_key = "cb868b0bd38465e0a6ff51525edcf799"
-
-with open(resource_path("open_id_config.json")) as f:
-    open_id_config = json.load(f)
-
-with open(resource_path("config.json")) as f:
-    config = json.load(f)
+capsolver.api_key = "CAP-CE0B6DD560FFC963B44E13E534D7782F"
 
 
 class Bot:
@@ -64,15 +54,11 @@ class Bot:
         self.booked = 0
         self.target_h = 7
         self.target_min = 59
-        self.target_sec = 54
+        self.target_sec = 52
         self.copied_documents = self.documents
         self.logged_users = {}
-
-        with open(resource_path("open_id_config.json")) as f:
-            self.open_id_config = json.load(f)
-
-        with open(resource_path("config.json")) as f:
-            self.config = json.load(f)
+        self.config = CONFIG
+        self.open_id_config = OPEN_ID_CONFIG
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -132,7 +118,7 @@ class Bot:
             )
             if response.status == 200 and result:
                 self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
-            if not (result):
+            if not (result) and self.main_thread_flag:
                 self.window.print_in_log(
                     "يوجد خطأ في التحقق من الكود... OTP", color=danger
                 )
@@ -140,7 +126,8 @@ class Bot:
                 await self.verify_otp(session)
 
         except Exception as e:
-            self.window.print_in_log("يوجد خطأ في التحقق من الكود... OTP")
+            print("OTP VERIFICATION ERROR: ", e)
+            self.window.print_in_log("يوجد خطأ في التحقق من الكود... OTP", color=info)
 
     async def get_recaptcha(self):
         try:
@@ -179,8 +166,6 @@ class Bot:
         threading.Thread(
             target=lambda: asyncio.run(
                 db.finish_excution(
-                    self.username,
-                    self.password,
                     f"https://eu.gateway.mastercard.com/checkout/pay/{payment_link}?checkoutVersion=1.0.0",
                 )
             )
@@ -189,7 +174,7 @@ class Bot:
     async def async_get_available_slots(self, session):
         try:
             self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-06-30&type=WEB"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-07-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -206,12 +191,15 @@ class Bot:
                 "sec-ch-ua-platform": "Windows",
             }
             response = await session.get(api_url, headers=headers)
-            self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
             result = await response.json()
             print(
                 f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of AVAILABLE SLOTS: {result}"
             )
-            return result
+            try:
+                if not ("Internal Error" in result.get("message")):
+                    self.window.print_in_log("تم الحصول علي اماكن للحجز", color=success)
+            finally:
+                return result
         except Exception as e:
             print("SLOTS ERROR ", e)
             self.window.print_in_log("يوجد خطأ في الحصول علي اماكن للحجز", color=danger)
@@ -246,18 +234,6 @@ class Bot:
                 )
                 self.get_otp()
                 await self.verify_otp(session)
-            elif response.status == 401:
-
-                result = await response.text()
-                print(
-                    f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP sent: {result}"
-                )
-                self.window.print_in_log("حدث خطاء في ارسال الكود... OTP", color=danger)
-                await self.async_login_handler(
-                    [self.username, self.password], regenerate_token=True
-                )
-                await self.async_send_otp(session)
-                await self.async_check_for_availabilty(self.username, self.token)
         except Exception as e:
             print("OTP ERROR: ", e)
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
@@ -315,7 +291,7 @@ class Bot:
             }
             body = {
                 "officeId": self.office_id,
-                "tripDate": "2024-06-30",
+                "tripDate": "2024-07-30",
                 "tripDestination": "roma",
                 "termandcond": True,
                 "idServiceLevel": self.serviceLevel,
@@ -374,11 +350,22 @@ class Bot:
                 ]
                 if self.availability and (not self.booked):
                     responses = await asyncio.gather(*tasks)
+                    slots = responses[0]
+                    if type(slots) == dict:
+                        if "Internal Error" in slots.get("message"):
+                            self.window.print_in_log(
+                                "عذرا لا يوحد مواعيد للحجز تم الغاء المهمة",
+                                color=danger,
+                            )
+                            return
+                    threading.Thread(
+                        target=lambda: asyncio.run(
+                            db.write_user(self.username, self.password)
+                        )
+                    ).start()
                     if not self.otp:
                         await self.async_send_otp(session)
-                    slots = responses[0]
                     self.applicant.set_bot(self)
-
                     for date in slots:
                         if self.booked:
                             return
@@ -452,7 +439,6 @@ class Bot:
                         else:
                             if not (self.mode):
                                 break
-                            await asyncio.sleep(0.1)
                     if response.status == 429:
                         self.window.print_in_log(
                             f"لا يوجد مواعيد للمستخدم حاليا... {user}", color=danger
@@ -460,7 +446,7 @@ class Bot:
                         checking_FLAG = 0
                     if int(response.status) in range(400, 500):
                         checking_FLAG = 0
-                await asyncio.sleep(30)
+                await asyncio.sleep(300)
 
         except Exception as e:
             print("Cheking for availabilty ERROR: ", e)
@@ -495,18 +481,19 @@ class Bot:
                 f"تعذر تسجيل الدخول للحساب {account[0]}", color=danger
             )
             print(f"LOGGING IN ERROR FOR - {account[0]}: ", e)
-            if "argument" in str(e):
+            if "argument" in str(e) and not (
+                "Proxy" in str(e) or "Connection" in str(e) or "Error" in str(e)
+            ):
                 return
             return await self.async_login_handler(account)
 
     async def login_handler(self):
         tasks = []
         for account in self.accounts:
-            for _ in range(4 if self.mode else 1):
-                if account in self.accounts:
-                    tasks.append(asyncio.create_task(self.async_login_handler(account)))
-                else:
-                    break
+            if account in self.accounts:
+                tasks.append(asyncio.create_task(self.async_login_handler(account)))
+            else:
+                break
 
         await asyncio.gather(*tasks)
 
@@ -535,9 +522,14 @@ class Bot:
         try:
             if not (self.mode):
                 self.accounts = [self.accounts[0]]
-            asyncio.run(self.async_run_tasks())
+                self.username = self.accounts[0][0]
+                asyncio.run(self.login_handler())
+                self.token = self.logged_users[self.username][1]
+            else:
+                asyncio.run(self.async_run_tasks())
             if self.token:
-                self.window.add_accepted_account(self.username)
+                if self.mode:
+                    self.window.add_accepted_account(self.username)
                 self.availability = True
                 asyncio.run(self.async_after_confirmation())
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
@@ -552,4 +544,3 @@ class Bot:
             self.window.print_in_log(
                 f"حدث خطأ في البرنامج جاري اعادة المحاولة", color=danger
             )
-            self.start_booking()

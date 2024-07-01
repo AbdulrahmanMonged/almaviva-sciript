@@ -18,7 +18,7 @@ class App2(CTkFrame):
         super().__init__(master, *args, **kwargs)
         self.target_hour = 7
         self.target_minute = 59
-        self.target_second = 54
+        self.target_second = 52
         self.count = 0
         self.labels = []
         self.applicant = None
@@ -39,7 +39,7 @@ class App2(CTkFrame):
         self.accounts_window = None
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        
+
         self.navigation_frame = CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, sticky="nsew")
         self.navigation_frame.grid_rowconfigure(6, weight=1)
@@ -161,7 +161,7 @@ class App2(CTkFrame):
             text=render_text("اضافة مستخدمين"),
             command=self.open_account_window,
             fg_color=primary_btn,
-            hover_color=primary_hover
+            hover_color=primary_hover,
         )
         self.add_many_applicants_btn.grid(row=3, column=1, sticky="s", padx=5, pady=5)
         self.save_password_check = StringVar(value="on")
@@ -185,23 +185,23 @@ class App2(CTkFrame):
             self.home_frame, values=["Cairo", "Alexandria"], width=170
         )
         self.office_id_option.grid(row=4, column=1, sticky="s", padx=5, pady=5)
-        
+
         self.visa_price_lbl = CTkLabel(self.home_frame, text=render_text("سعر الفيزا"))
         self.visa_price_lbl.grid(row=5, column=2, sticky="s", padx=5, pady=5)
         self.visa_price_options = CTkOptionMenu(
             self.home_frame, values=["Standard - EGP 1750", "Vip - EGP 3810"], width=170
         )
         self.visa_price_options.grid(row=5, column=1, sticky="s", padx=5, pady=5)
-        
+
         self.mode_lbl = CTkLabel(self.home_frame, text=render_text("الوضع"))
         self.mode_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
         self.mode_option = CTkOptionMenu(
-            self.home_frame, values=[render_text("البحث عن حجز") ,render_text("استكمال حجز")], width=170
+            self.home_frame,
+            values=[render_text("البحث عن حجز"), render_text("استكمال حجز")],
+            width=170,
         )
         self.mode_option.grid(row=6, column=1, sticky="s", padx=5, pady=5)
-        
-        
-        
+
         self.start_with_timer_lbl.grid(row=8, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
@@ -308,7 +308,9 @@ class App2(CTkFrame):
         )
         self.passport_img_state.grid(row=0, column=0, sticky="nsew")
         if self.visa_id == 3:
-            self.nulla_img_lbl = CTkLabel(self.third_frame, text=render_text("صورة العقد"))
+            self.nulla_img_lbl = CTkLabel(
+                self.third_frame, text=render_text("صورة العقد")
+            )
             self.nulla_img_btn = CTkButton(
                 self.third_frame,
                 text=render_text("تحميل"),
@@ -317,7 +319,9 @@ class App2(CTkFrame):
             self.nulla_img_btn.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
             self.nulla_img_lbl.grid(row=1, column=2, sticky="nsew")
             self.nulla_img_state = CTkLabel(
-                self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
+                self.third_frame,
+                text=render_text("لم يتم تحميل الصورة"),
+                text_color=danger,
             )
             self.nulla_img_state.grid(row=1, column=0, sticky="nsew")
             self.phonenum_img_lbl = CTkLabel(
@@ -331,7 +335,9 @@ class App2(CTkFrame):
             self.phonenum_img_btn.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
             self.phonenum_img_lbl.grid(row=2, column=2, sticky="nsew")
             self.phonenum_img_state = CTkLabel(
-                self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
+                self.third_frame,
+                text=render_text("لم يتم تحميل الصورة"),
+                text_color=danger,
             )
             self.phonenum_img_state.grid(row=2, column=0, sticky="nsew")
         self.img_save_button = CTkButton(
@@ -600,9 +606,13 @@ class App2(CTkFrame):
             return
         self.disable_home_data()
         countdown = Countdown(self.target_hour, 55, 0)
-        future_countdown = Countdown(self.target_hour, self.target_minute, self.target_second)
+        future_countdown = Countdown(
+            self.target_hour, self.target_minute, self.target_second
+        )
         if self.start_with_timer_check.get() == "on":
-            if not(countdown.get_remaining_time() > future_countdown.get_remaining_time()):
+            if not (
+                countdown.get_remaining_time() > future_countdown.get_remaining_time()
+            ):
                 self.start_delay = self.after(
                     countdown.time_to_start_program(), self.bot_excution
                 )
@@ -612,7 +622,6 @@ class App2(CTkFrame):
         else:
             self.bot_excution()
         self.select_frame_by_name("frame_5")
-        
 
     def bot_excution(self):
         secretvars.MAIN_FLAG = 1
@@ -627,7 +636,7 @@ class App2(CTkFrame):
             0 if self.mode_option.get() == render_text("استكمال حجز") else 1,
             1 if self.visa_price_options.get() == "Standard - EGP 1750" else 2,
             self.start_with_timer_check.get() == "on",
-            self.otp_entry.get()
+            self.otp_entry.get(),
         )
         self.bot.accounts = self.get_all_applicants()
         Thread(target=self.bot.start_booking).start()
@@ -658,24 +667,22 @@ class App2(CTkFrame):
 
     def get_all_applicants(self):
         return [applicant.get_applicant_data() for applicant in self.applicants]
-    
+
     def open_toplevel(self):
         if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
             self.toplevel_window = ToplevelWindow(self)
         else:
             self.toplevel_window.focus()
-    
+
     def open_account_window(self):
         if self.accounts_window is None or not self.accounts_window.winfo_exists():
             self.accounts_window = AccountsManager(self)
         else:
             self.accounts_window.focus()
-            
+
     def add_accepted_account(self, user):
         self.open_toplevel()
         self.toplevel_window.add_account(user)
-        
-    
 
 
 class AccountFrame(CTkFrame):
@@ -716,9 +723,15 @@ class ToplevelWindow(CTkToplevel):
         self.grid_rowconfigure(0, weight=1)  # configure grid system
         self.grid_columnconfigure(0, weight=1)
 
-        self.textbox = CTkTextbox(master=self, width=400, corner_radius=0, state="disabled", font=CTkFont(size=15))
+        self.textbox = CTkTextbox(
+            master=self,
+            width=400,
+            corner_radius=0,
+            state="disabled",
+            font=CTkFont(size=15),
+        )
         self.textbox.grid(row=0, column=0, sticky="nsew")
-    
+
     def add_account(self, account):
         if account in self.textbox.get("1.0", "end").split("\n"):
             return
@@ -726,7 +739,8 @@ class ToplevelWindow(CTkToplevel):
         self.textbox.insert("end", f"{account}\n")
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
-        
+
+
 class AccountsManager(CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -734,17 +748,28 @@ class AccountsManager(CTkToplevel):
         self.title("اضافة الحسابات")
         self.rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.label1 = CTkLabel(self, text=render_text("الحسابات"), font=CTkFont(size=15))
+        self.label1 = CTkLabel(
+            self, text=render_text("الحسابات"), font=CTkFont(size=15)
+        )
         self.label1.grid(row=0, column=0, sticky="nsew")
-        self.textbox = CTkTextbox(master=self, width=400, corner_radius=0, font=CTkFont(size=15))
+        self.textbox = CTkTextbox(
+            master=self, width=400, corner_radius=0, font=CTkFont(size=15)
+        )
         self.textbox.grid(row=1, column=0, sticky="nsew", pady=10)
-        self.label2 = CTkLabel(self, text=render_text("كلمة المرور"), font=CTkFont(size=15))
+        self.label2 = CTkLabel(
+            self, text=render_text("كلمة المرور"), font=CTkFont(size=15)
+        )
         self.label2.grid(row=2, column=0, sticky="nsew")
         self.entry = CTkEntry(self, width=400, font=CTkFont(size=15))
         self.entry.grid(row=3, column=0, sticky="nsew", pady=10)
-        self.add_btn = CTkButton(self, text=render_text("اضافة"), font=CTkFont(size=15), command=self.get_accounts)
+        self.add_btn = CTkButton(
+            self,
+            text=render_text("اضافة"),
+            font=CTkFont(size=15),
+            command=self.get_accounts,
+        )
         self.add_btn.grid(row=4, column=0, sticky="nsew", pady=10)
-    
+
     def get_accounts(self):
         if not self.textbox.get("1.0", "end").strip():
             messagebox.showerror("خطأ", "الرجاء ادخال الحسابات")
@@ -755,11 +780,10 @@ class AccountsManager(CTkToplevel):
         self.entry.configure(state="disabled")
         self.textbox.configure(state="disabled")
         self.add_btn.configure(state="disabled")
-        accounts = [account for account in self.textbox.get("1.0", "end").split("\n") if account]
+        accounts = [
+            account for account in self.textbox.get("1.0", "end").split("\n") if account
+        ]
         for account in accounts:
-            self.master.add_applicant(
-                account, self.entry.get().strip(), False
-            )
+            self.master.add_applicant(account, self.entry.get().strip(), False)
         self.destroy()
         return
-    

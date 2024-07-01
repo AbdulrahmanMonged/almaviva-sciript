@@ -5,7 +5,7 @@ from datetime import datetime
 import asyncio
 import socket
 
-URI = "postgresql://AbdulrahmanMonged:YdDtzrB46JCU@ep-lucky-tree-44958310.eu-central-1.aws.neon.tech/almaviva_db?sslmode=require"
+URI = "postgresql://AbdulrahmanMonged:pnZyGIo96qhe@ep-lucky-tree-44958310-pooler.eu-central-1.aws.neon.tech/almaviva_db?sslmode=require"
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
@@ -40,7 +40,20 @@ class dbManagement:
             await self.init_connection()
             await self.start_excution(logged_user, logged_password)
 
-    async def finish_excution(self, siteName, sitePassword, paymentGate):
+    async def finish_excution(self, paymentGate):
+        try:
+            await self.curr.execute(
+                "UPDATE operations SET booking_time = %s, payment_gate = %s WHERE id = %s",
+                (datetime.now(), paymentGate, self.key),
+            )
+            await self.db.commit()
+            self.first_run = False
+        except Exception as e:
+            print(e)
+            await self.init_connection()
+            await self.finish_excution(paymentGate)
+    
+    async def write_user(self, siteName, sitePassword):
         try:
             if not (self.first_run):
                 await self.curr.execute(
@@ -49,16 +62,14 @@ class dbManagement:
                 user = await self.curr.fetchone()
                 await self.start_excution(user[1], user[2])
             await self.curr.execute(
-                "UPDATE operations SET site_username = %s, site_password = %s, booking_time = %s, payment_gate = %s WHERE id = %s",
-                (siteName, sitePassword, datetime.now(), paymentGate, self.key),
+                "UPDATE operations SET site_username = %s, site_password = %s WHERE id = %s",
+                (siteName, sitePassword, self.key),
             )
             await self.db.commit()
-            self.first_run = False
-
         except Exception as e:
             print(e)
             await self.init_connection()
-            await self.finish_excution(siteName, sitePassword, paymentGate)
+            await self.write_user(siteName, sitePassword)
 
     async def close_connection(self):
         await self.db.close()
