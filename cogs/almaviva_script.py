@@ -52,13 +52,14 @@ class Bot:
         self.countdown = countdown
         self.FLAG = 1
         self.booked = 0
-        self.target_h = 7
+        self.target_h = 8
         self.target_min = 59
         self.target_sec = 52
         self.copied_documents = self.documents
         self.logged_users = {}
         self.config = CONFIG
         self.open_id_config = OPEN_ID_CONFIG
+        self.send_otp = None
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -66,15 +67,16 @@ class Bot:
 
     def wait_for_otp(self):
         xdxdxdxd = CTkInputDialog(
-            text=render_text(
-                f"سوف يتم ارسال كود التحقق الي الرقم {self.applicant.get_phone_number()} برجاء الضغط علي Okay لارساله"
-            ),
+            text="Phone Num: {0}\nFor Account: {1}\nPress Okay to send OTP".format(self.applicant.get_phone_number(), self.username),
             title="OTP",
         )
-        nonsense = xdxdxdxd.get_input()
+        self.send_otp = xdxdxdxd.get_input()
+        return self.send_otp
+            
+            
 
     def get_otp(self):
-        self.window.print_in_log("جاري الحصول على الكود... OTP", color=warning)
+        self.window.print_in_log("جاري الحصول على الكود... OTP".format(self.applicant.get_phone_number()), color=warning)
         otp = CTkInputDialog(text="Enter OTP", title="OTP")
         self.otp = otp.get_input()
 
@@ -118,6 +120,7 @@ class Bot:
             )
             if response.status == 200 and result:
                 self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
+                self.window.sign_otp(self.otp)
             if not (result) and self.main_thread_flag:
                 self.window.print_in_log(
                     "يوجد خطأ في التحقق من الكود... OTP", color=danger
@@ -206,34 +209,42 @@ class Bot:
 
     async def async_send_otp(self, session):
         try:
-            self.wait_for_otp()
-            self.window.print_in_log("جاري ارسال الكود... OTP", color=warning)
-            api_url = "https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1"
-            headers = {
-                "Accept": "application/json, text/plain, */*",
-                "Authorization": f"Bearer {self.token}",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                "Origin": "https://egy.almaviva-visa.it",
-                "Referer": "https://egy.almaviva-visa.it/",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "Windows",
-            }
-            data = {}
-            response = await session.post(
-                api_url,
-                headers=headers,
-            )
-            if response.status == 200:
-                self.window.print_in_log("تم ارسال الكود... OTP", color=success)
-                result = await response.json()
-                print(
-                    f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP sent: {result}"
+            if not(self.wait_for_otp() == None):
+                self.window.print_in_log("جاري ارسال الكود... OTP", color=warning)
+                api_url = "https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1"
+                headers = {
+                    "Accept": "application/json, text/plain, */*",
+                    "Authorization": f"Bearer {self.token}",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Origin": "https://egy.almaviva-visa.it",
+                    "Referer": "https://egy.almaviva-visa.it/",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "same-site",
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "Windows",
+                }
+                data = {}
+                response = await session.post(
+                    api_url,
+                    headers=headers,
                 )
-                self.get_otp()
-                await self.verify_otp(session)
+                if response.status == 200:
+                    self.window.print_in_log("تم ارسال الكود... OTP", color=success)
+                    result = await response.json()
+                    print(
+                        f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP sent: {result}"
+                    )
+                    if result.get("success"):
+                        self.get_otp()
+                        if self.otp :
+                            await self.verify_otp(session)
+                        else:
+                            self.main_thread_flag = 0
+                    else:
+                        self.main_thread_flag = 0
+            else:
+                self.main_thread_flag = 0
         except Exception as e:
             print("OTP ERROR: ", e)
             self.window.print_in_log("يوجد خطأ في الارسال الكود... OTP", color=danger)
@@ -363,17 +374,19 @@ class Bot:
                             db.write_user(self.username, self.password)
                         )
                     ).start()
-                    if not self.otp:
+                    await self.async_login_handler([self.username, self.password], True)
+                    if not self.otp and self.main_thread_flag:
                         await self.async_send_otp(session)
                     self.applicant.set_bot(self)
-                    for date in slots:
-                        if self.booked:
-                            return
-                        await self.async_book(slot=date, session=session)
-                        if self.payment_link:
-                            self.write_payment_link(self.payment_link)
-                        if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
-                            return
+                    if self.main_thread_flag:
+                        for date in slots:
+                            if self.booked:
+                                return
+                            await self.async_book(slot=date, session=session)
+                            if self.payment_link:
+                                self.write_payment_link(self.payment_link)
+                            if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                                return
                 else:
                     self.window.print_in_log(
                         "عذرا لا يوجد مواعيد متاحة للحجز...برجاء المحاولة مرة اخري",
@@ -411,42 +424,43 @@ class Bot:
                         self.target_h, self.target_min, self.target_sec
                     )
                     await asyncio.sleep(countdown.get_remaining_seconds())
-                print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
-                while (
-                    self.FLAG
-                    and self.main_thread_flag
-                    and secretvars.MAIN_FLAG
-                    and checking_FLAG
-                ):
-                    tasks = [session.get(api_url, headers=headers) for _ in range(1)]
-                    responses = await asyncio.gather(*tasks)
-                    response = responses[0]
-                    if not (checking_FLAG):
-                        break
-                    print(
-                        f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of checking is '{(await response.text()).upper()}' Status code: '{response.status}' for user '{user}'"
-                    )
-                    if response.status == 200:
-                        if await response.text() == "true":
-                            self.window.print_in_log(
-                                f"تم الحصول علي مواعيد للمستخدم ... {user}",
-                                color=success,
-                            )
-                            self.username = user
-                            self.token = token
-                            self.password = self.logged_users[user][0]
-                            return
-                        else:
-                            if not (self.mode):
-                                break
-                    if response.status == 429:
-                        self.window.print_in_log(
-                            f"لا يوجد مواعيد للمستخدم حاليا... {user}", color=danger
+                if self.main_thread_flag:
+                    print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
+                    while (
+                        self.FLAG
+                        and self.main_thread_flag
+                        and secretvars.MAIN_FLAG
+                        and checking_FLAG
+                    ):
+                        tasks = [session.get(api_url, headers=headers) for _ in range(1)]
+                        responses = await asyncio.gather(*tasks)
+                        response = responses[0]
+                        if not (checking_FLAG):
+                            break
+                        print(
+                            f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of checking is '{(await response.text()).upper()}' Status code: '{response.status}' for user '{user}'"
                         )
-                        checking_FLAG = 0
-                    if int(response.status) in range(400, 500):
-                        checking_FLAG = 0
-                await asyncio.sleep(300)
+                        if response.status == 200:
+                            if await response.text() == "true":
+                                self.window.print_in_log(
+                                    f"تم الحصول علي مواعيد للمستخدم ... {user}",
+                                    color=success,
+                                )
+                                self.username = user
+                                self.token = token
+                                self.password = self.logged_users[user][0]
+                                return
+                            else:
+                                if not (self.mode):
+                                    break
+                        if response.status == 429:
+                            self.window.print_in_log(
+                                f"لا يوجد مواعيد للمستخدم حاليا... {user}", color=danger
+                            )
+                            checking_FLAG = 0
+                        if int(response.status) in range(400, 500):
+                            checking_FLAG = 0
+                    await asyncio.sleep(300)
 
         except Exception as e:
             print("Cheking for availabilty ERROR: ", e)
@@ -477,6 +491,8 @@ class Bot:
                     self.logged_users[account[0]].append(account[1])
                 self.logged_users[account[0]].append(token)
         except Exception as e:
+            if regenerate_token:
+                return await self.async_login_handler(account, regenerate_token=True)
             self.window.print_in_log(
                 f"تعذر تسجيل الدخول للحساب {account[0]}", color=danger
             )

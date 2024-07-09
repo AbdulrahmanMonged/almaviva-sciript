@@ -16,7 +16,7 @@ from .sheet_management import db
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
-        self.target_hour = 7
+        self.target_hour = 8
         self.target_minute = 59
         self.target_second = 52
         self.count = 0
@@ -599,6 +599,8 @@ class App2(CTkFrame):
             self.enbale_home_data()
             self.edit_img_data()
             secretvars.MAIN_FLAG = 0
+            self.bot.main_thread_flag = 0
+            self.bot = None
             self.enbale_home_data()
 
     def start_execution(self):
@@ -683,6 +685,20 @@ class App2(CTkFrame):
     def add_accepted_account(self, user):
         self.open_toplevel()
         self.toplevel_window.add_account(user)
+        self.change_color_for_accepted_user(user)
+    
+    def change_color_for_accepted_user(self, user):
+        for account in self.applicants:
+            if account.get_applicant_data()[0] == user:
+                account.change_color()
+                break
+            
+    def sign_otp(self, otp):
+        self.otp_entry.configure(state="normal")
+        self.otp_entry.delete(0, "end")
+        self.otp_entry.insert(0, otp)
+        self.otp_entry.configure(state="disabled")
+    
 
 
 class AccountFrame(CTkFrame):
@@ -713,6 +729,12 @@ class AccountFrame(CTkFrame):
 
     def get_applicant_data(self):
         return [self.name, self.password]
+    
+    def change_color(self):
+        self.account_name.configure(text_color=success)
+        self.account_password.configure(text_color=success)
+    
+    
 
 
 class ToplevelWindow(CTkToplevel):

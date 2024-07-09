@@ -19,7 +19,7 @@ class App(CTk):
         super().__init__(*args, **kwargs)
         self.FLAG = 0
         self.geometry("320x200")
-        self.iconbitmap(resource_path("thunder.ico"))
+        # self.iconbitmap(resource_path("thunder.ico"))
         self.title("ALMAVIVA SCRIPT")
         self.username_lbl = CTkLabel(self, text="Username")
         self.username_entry = CTkEntry(self)
