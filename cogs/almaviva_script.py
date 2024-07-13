@@ -52,7 +52,7 @@ class Bot:
         self.countdown = countdown
         self.FLAG = 1
         self.booked = 0
-        self.target_h = 8
+        self.target_h = 7
         self.target_min = 59
         self.target_sec = 52
         self.copied_documents = self.documents
@@ -60,6 +60,7 @@ class Bot:
         self.config = CONFIG
         self.open_id_config = OPEN_ID_CONFIG
         self.send_otp = None
+        self.otp_verified = False
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -76,6 +77,7 @@ class Bot:
             
 
     def get_otp(self):
+        self.otp = ""
         self.window.print_in_log("جاري الحصول على الكود... OTP".format(self.applicant.get_phone_number()), color=warning)
         otp = CTkInputDialog(text="Enter OTP", title="OTP")
         self.otp = otp.get_input()
@@ -93,40 +95,45 @@ class Bot:
         self.applicant.set_passport_number(passport.get_input())
 
     async def verify_otp(self, session):
+        
         try:
-            self.window.print_in_log(("جاري التحقق من الكود... OTP"), color=warning)
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1/{self.otp}"
-            headers = {
-                "Accept": "application/json, text/plain, */*",
-                "Authorization": f"Bearer {self.token}",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                "Origin": "https://egy.almaviva-visa.it",
-                "Referer": "https://egy.almaviva-visa.it/",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": "Windows",
-            }
-            data = {}
-            response = await session.post(
-                api_url,
-                headers=headers,
-                data=json.dumps(data),
-            )
-            result = await response.json()
-            print(
-                f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP Verification: {result}"
-            )
-            if response.status == 200 and result:
-                self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
-                self.window.sign_otp(self.otp)
-            if not (result) and self.main_thread_flag:
-                self.window.print_in_log(
-                    "يوجد خطأ في التحقق من الكود... OTP", color=danger
+            if self.otp:
+                self.window.print_in_log(("جاري التحقق من الكود... OTP"), color=warning)
+                api_url = f"https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1/{self.otp}"
+                headers = {
+                    "Accept": "application/json, text/plain, */*",
+                    "Authorization": f"Bearer {self.token}",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                    "Origin": "https://egy.almaviva-visa.it",
+                    "Referer": "https://egy.almaviva-visa.it/",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "same-site",
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": "Windows",
+                }
+                data = {}
+                response = await session.post(
+                    api_url,
+                    headers=headers,
+                    data=json.dumps(data),
                 )
-                self.get_otp()
-                await self.verify_otp(session)
+                result = await response.json()
+                print(
+                    f"{datetime.now().strftime('%H:%M:%S:%f')} - Result of OTP Verification: {result}"
+                )
+                if response.status == 200 and result:
+                    self.window.print_in_log("تم التحقق من الكود... OTP", color=success)
+                    self.window.sign_otp(self.otp)
+                    self.otp_verified = True
+                if not (result) and self.main_thread_flag:
+                    self.window.print_in_log(
+                        "يوجد خطأ في التحقق من الكود... OTP", color=danger
+                    )
+                    self.get_otp()
+                    await self.verify_otp(session)
+            else:
+                self.main_thread_flag = 0
 
         except Exception as e:
             print("OTP VERIFICATION ERROR: ", e)
@@ -378,7 +385,7 @@ class Bot:
                     if not self.otp and self.main_thread_flag:
                         await self.async_send_otp(session)
                     self.applicant.set_bot(self)
-                    if self.main_thread_flag:
+                    if self.main_thread_flag and self.otp_verified:
                         for date in slots:
                             if self.booked:
                                 return

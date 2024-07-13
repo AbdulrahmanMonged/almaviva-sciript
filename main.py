@@ -10,3 +10,4 @@ app.mainloop()
 secretvars.MAIN_FLAG = 0
 asyncio.run(db.close_connection())
 sys.exit()
+ 
