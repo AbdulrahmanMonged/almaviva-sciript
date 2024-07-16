@@ -15,6 +15,7 @@ from aiohttp_socks import ProxyConnector
 import asyncio
 from awesometkinter.bidirender import render_text
 from .required_info import *
+import jwt
 
 capsolver.api_key = "CAP-CE0B6DD560FFC963B44E13E534D7782F"
 
@@ -68,17 +69,20 @@ class Bot:
 
     def wait_for_otp(self):
         xdxdxdxd = CTkInputDialog(
-            text="Phone Num: {0}\nFor Account: {1}\nPress Okay to send OTP".format(self.applicant.get_phone_number(), self.username),
+            text="Phone Num: {0}\nFor Account: {1}\nPress Okay to send OTP".format(
+                self.applicant.get_phone_number(), self.username
+            ),
             title="OTP",
         )
         self.send_otp = xdxdxdxd.get_input()
         return self.send_otp
-            
-            
 
     def get_otp(self):
         self.otp = ""
-        self.window.print_in_log("جاري الحصول على الكود... OTP".format(self.applicant.get_phone_number()), color=warning)
+        self.window.print_in_log(
+            "جاري الحصول على الكود... OTP".format(self.applicant.get_phone_number()),
+            color=warning,
+        )
         otp = CTkInputDialog(text="Enter OTP", title="OTP")
         self.otp = otp.get_input()
 
@@ -95,7 +99,7 @@ class Bot:
         self.applicant.set_passport_number(passport.get_input())
 
     async def verify_otp(self, session):
-        
+
         try:
             if self.otp:
                 self.window.print_in_log(("جاري التحقق من الكود... OTP"), color=warning)
@@ -216,9 +220,11 @@ class Bot:
 
     async def async_send_otp(self, session):
         try:
-            if not(self.wait_for_otp() == None):
+            if not (self.wait_for_otp() == None):
                 self.window.print_in_log("جاري ارسال الكود... OTP", color=warning)
-                api_url = "https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1"
+                api_url = (
+                    "https://egyapi.almaviva-visa.it/reservation-manager//api/otp/v1"
+                )
                 headers = {
                     "Accept": "application/json, text/plain, */*",
                     "Authorization": f"Bearer {self.token}",
@@ -244,7 +250,7 @@ class Bot:
                     )
                     if result.get("success"):
                         self.get_otp()
-                        if self.otp :
+                        if self.otp:
                             await self.verify_otp(session)
                         else:
                             self.main_thread_flag = 0
@@ -264,37 +270,15 @@ class Bot:
             self.applicant.add_document(document)
         self.window.print_in_log("تم تحميل المستندات", color=success)
 
-    async def async_get_account_data(self, session):
-        try:
-            api_url = "https://egyiam.almaviva-visa.it/realms/oauth2-visaSystem-realm-pkce/protocol/openid-connect/userinfo"
-            headers = {
-                "Accept": "application/json, text/plain, */*",
-                "Authorization": f"Bearer {self.token}",
-                "Accept-Language": "en",
-                "Accept-Encoding": "gzip, deflate, br, zstd",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                "Connection": "keep-alive",
-                "Host": "egyiam.almaviva-visa.it",
-                "Origin": "https://egy.almaviva-visa.it",
-                "Referer": "https://egy.almaviva-visa.it/",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-            }
-            self.window.print_in_log("جاري تحميل بيانات الحساب", color=warning)
-            response = await session.get(api_url, headers=headers)
-            recieved_data = await response.json()
-            data = {
-                "name": recieved_data["given_name"],
-                "family_name": recieved_data["family_name"],
-                "email": recieved_data["email"],
-                "phone": recieved_data["phone_number"],
-            }
-            self.window.print_in_log("تم تحميل بيانات الحساب", color=success)
-            self.applicant.set_new_data(data)
-        except Exception as e:
-            print(e)
-            self.window.print_in_log("يوجد خطأ في تحميل بيانات الحساب", color=danger)
+    async def async_get_account_data(self):
+        decoded_token = jwt.decode(self.token, options={"verify_signature": False})
+        data = {
+            "name": decoded_token["given_name"],
+            "family_name": decoded_token["family_name"],
+            "email": decoded_token["email"],
+            "phone": decoded_token["phone_number"],
+        }
+        self.applicant.set_new_data(data)
 
     async def async_book(self, slot, session):
         try:
@@ -316,6 +300,7 @@ class Bot:
                 "applicants": [self.applicant.get_applicant_json()],
                 "slotStartDate": slot,
                 "source": "WEB",
+                "privacyPolicy": True,
                 "otp": self.otp,
             }
             URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
@@ -364,7 +349,7 @@ class Bot:
                     self.async_get_available_slots(session),
                     self.async_upload_documents(session),
                     self.get_recaptcha(),
-                    self.async_get_account_data(session),
+                    self.async_get_account_data(),
                 ]
                 if self.availability and (not self.booked):
                     responses = await asyncio.gather(*tasks)
@@ -384,6 +369,9 @@ class Bot:
                     await self.async_login_handler([self.username, self.password], True)
                     if not self.otp and self.main_thread_flag:
                         await self.async_send_otp(session)
+                    else:
+                        self.otp_verified = 1
+
                     self.applicant.set_bot(self)
                     if self.main_thread_flag and self.otp_verified:
                         for date in slots:
@@ -432,14 +420,18 @@ class Bot:
                     )
                     await asyncio.sleep(countdown.get_remaining_seconds())
                 if self.main_thread_flag:
-                    print(f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}")
+                    print(
+                        f"TARGET TIME REACHED - {datetime.now().strftime('%H:%M:%S:%f')}"
+                    )
                     while (
                         self.FLAG
                         and self.main_thread_flag
                         and secretvars.MAIN_FLAG
                         and checking_FLAG
                     ):
-                        tasks = [session.get(api_url, headers=headers) for _ in range(1)]
+                        tasks = [
+                            session.get(api_url, headers=headers) for _ in range(1)
+                        ]
                         responses = await asyncio.gather(*tasks)
                         response = responses[0]
                         if not (checking_FLAG):
@@ -551,9 +543,11 @@ class Bot:
                 self.token = self.logged_users[self.username][1]
             else:
                 asyncio.run(self.async_run_tasks())
+
             if self.token:
                 if self.mode:
                     self.window.add_accepted_account(self.username)
+                self.window.resend_otp_btn.configure(state="enabled")
                 self.availability = True
                 asyncio.run(self.async_after_confirmation())
             if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:

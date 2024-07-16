@@ -11,6 +11,8 @@ import webbrowser
 from .Countdown import Countdown
 from . import secretvars
 from .sheet_management import db
+import asyncio
+from .rescue import rescute_otp
 
 
 class App2(CTkFrame):
@@ -202,7 +204,7 @@ class App2(CTkFrame):
         )
         self.mode_option.grid(row=6, column=1, sticky="s", padx=5, pady=5)
 
-        self.start_with_timer_lbl.grid(row=8, column=2, sticky="s", padx=5, pady=5)
+        self.start_with_timer_lbl.grid(row=9, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
             text="",
@@ -210,25 +212,36 @@ class App2(CTkFrame):
             onvalue="on",
             offvalue="off",
         )
-        self.start_with_timer_switch.grid(row=8, column=1, sticky="s", padx=5, pady=5)
+        self.start_with_timer_switch.grid(row=9, column=1, sticky="s", padx=5, pady=5)
         self.otp_label = CTkLabel(self.home_frame, text="OTP")
         self.otp_label.grid(row=7, column=2, sticky="nsew", padx=5, pady=5)
         self.otp_entry = CTkEntry(self.home_frame)
         self.otp_entry.grid(row=7, column=1, sticky="nsew", padx=5, pady=5)
+
+        self.resend_otp_lbl = CTkLabel(
+            self.home_frame, text=render_text("ارسال رمز التحقق")
+        )
+        # self.resend_otp_lbl.grid(row=8, column=2, sticky="nsew", padx=5, pady=5)
+        self.resend_otp_btn = CTkButton(
+            self.home_frame,
+            text=render_text("ارسال رمز التحقق"),
+            command=self.resend_otp,
+        )
+        # self.resend_otp_btn.grid(row=8, column=1, sticky="nsew", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
             text=render_text("بدا البرنامج"),
             command=self.start_execution,
         )
-        self.start_program_button.grid(row=9, column=2, sticky="s", padx=5, pady=5)
+        self.start_program_button.grid(row=10, column=2, sticky="s", padx=5, pady=5)
         self.home_disable_btn = CTkButton(
             self.home_frame,
             text=render_text("تعطيل البرنامج"),
             command=self.stop_execution,
             state="disabled",
         )
-        self.home_disable_btn.grid(row=9, column=0, sticky="s", padx=5, pady=5)
+        self.home_disable_btn.grid(row=10, column=0, sticky="s", padx=5, pady=5)
 
         #############################  ACCOUNT_INFORMATION ######################################
         self.birthdate_lbl = CTkLabel(
@@ -362,7 +375,7 @@ class App2(CTkFrame):
         )
         #############################################################################
 
-        self.home_frame.grid_rowconfigure(9, weight=1)
+        self.home_frame.grid_rowconfigure(10, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(4, weight=1)
 
@@ -686,19 +699,27 @@ class App2(CTkFrame):
         self.open_toplevel()
         self.toplevel_window.add_account(user)
         self.change_color_for_accepted_user(user)
-    
+
     def change_color_for_accepted_user(self, user):
         for account in self.applicants:
             if account.get_applicant_data()[0] == user:
                 account.change_color()
                 break
-            
+
     def sign_otp(self, otp):
         self.otp_entry.configure(state="normal")
         self.otp_entry.delete(0, "end")
         self.otp_entry.insert(0, otp)
         self.otp_entry.configure(state="disabled")
-    
+
+    def resend_otp(self):
+        if self.get_all_applicants() == []:
+            messagebox.showerror("خطأ", "الرجاء تحديد الحسابات")
+            return
+        self.resend_otp_btn.configure(state="disabled")
+        account = self.get_all_applicants()[0]
+        Thread(target=lambda: asyncio.run(rescute_otp(account, self))).start()
+        self.select_frame_by_name("frame_5")
 
 
 class AccountFrame(CTkFrame):
@@ -729,12 +750,10 @@ class AccountFrame(CTkFrame):
 
     def get_applicant_data(self):
         return [self.name, self.password]
-    
+
     def change_color(self):
         self.account_name.configure(text_color=success)
         self.account_password.configure(text_color=success)
-    
-    
 
 
 class ToplevelWindow(CTkToplevel):
