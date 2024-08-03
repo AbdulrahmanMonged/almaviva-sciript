@@ -15,6 +15,7 @@ import asyncio
 from .rescue import rescute_otp
 
 
+
 class App2(CTkFrame):
     def __init__(self, master, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
@@ -44,7 +45,7 @@ class App2(CTkFrame):
 
         self.navigation_frame = CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, sticky="nsew")
-        self.navigation_frame.grid_rowconfigure(6, weight=1)
+        self.navigation_frame.grid_rowconfigure(7, weight=1)
 
         self.navigation_frame_label = CTkLabel(
             self.navigation_frame,
@@ -92,6 +93,7 @@ class App2(CTkFrame):
             command=self.frame_3_button_event,
         )
         self.frame_3_button.grid(row=4, column=0, sticky="ew")
+
         self.frame_4_button = CTkButton(
             self.navigation_frame,
             corner_radius=0,
@@ -104,6 +106,7 @@ class App2(CTkFrame):
             command=self.frame_4_button_event,
         )
         self.frame_4_button.grid(row=2, column=0, sticky="ew")
+
         self.frame_5_button = CTkButton(
             self.navigation_frame,
             corner_radius=0,
@@ -115,7 +118,20 @@ class App2(CTkFrame):
             hover_color=("gray70", "gray30"),
             command=self.frame_5_button_event,
         )
-        self.frame_5_button.grid(row=5, column=0, sticky="ew")
+        self.frame_5_button.grid(row=6, column=0, sticky="ew")
+
+        self.frame_6_button = CTkButton(
+            self.navigation_frame,
+            corner_radius=0,
+            height=40,
+            border_spacing=10,
+            text=render_text("العمليات المحفوظة"),
+            fg_color="transparent",
+            text_color=("gray10", "gray90"),
+            hover_color=("gray70", "gray30"),
+            command=self.frame_6_button_event,
+        )
+        self.frame_6_button.grid(row=5, column=0, sticky="ew")
 
         self.home_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.second_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -127,7 +143,10 @@ class App2(CTkFrame):
             self, corner_radius=0, fg_color="transparent"
         )
 
+        self.sixth_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
+
         self.select_frame_by_name("home")
+
         for frame in [self.home_frame, self.second_frame, self.third_frame]:
             frame.grid_columnconfigure(0, weight=4, minsize=5)
             frame.grid_columnconfigure(1, weight=1)
@@ -373,11 +392,21 @@ class App2(CTkFrame):
         self.account_test.grid(
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
         )
+        ###############################SAVED OPERATIONS#####################################
+        self.customers_display = CustomerDisplay(self.sixth_frame)
+        self.customers_display.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.customer_manager = CustomersManagement(self.sixth_frame)
+        self.customer_manager.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+
         #############################################################################
 
         self.home_frame.grid_rowconfigure(10, weight=1)
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(4, weight=1)
+
+        self.sixth_frame.grid_columnconfigure(0, weight=1)
+        self.sixth_frame.grid_rowconfigure(0, weight=9)
+        self.sixth_frame.grid_rowconfigure(1, weight=1)
 
         #############################################################################
 
@@ -402,27 +431,39 @@ class App2(CTkFrame):
         self.frame_4_button.configure(
             fg_color=("gray75", "gray25") if name == "frame_4" else "transparent"
         )
+        self.frame_6_button.configure(
+            fg_color=("gray75", "gray25") if name == "frame_6" else "transparent"
+        )
 
         if name == "home":
             self.home_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.home_frame.grid_forget()
+
         if name == "frame_2":
             self.second_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.second_frame.grid_forget()
+
         if name == "frame_3":
             self.third_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.third_frame.grid_forget()
+
         if name == "frame_5":
             self.fifth_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.fifth_frame.grid_forget()
+
         if name == "frame_4":
             self.fourth_frame.grid(row=0, column=1, sticky="nsew")
         else:
             self.fourth_frame.grid_forget()
+
+        if name == "frame_6":
+            self.sixth_frame.grid(row=0, column=1, sticky="nsew")
+        else:
+            self.sixth_frame.grid_forget()
 
     def home_button_event(self):
         self.select_frame_by_name("home")
@@ -435,6 +476,12 @@ class App2(CTkFrame):
 
     def frame_5_button_event(self):
         self.select_frame_by_name("frame_5")
+
+    def frame_6_button_event(self):
+        self.customers_display.customers = []
+        Thread(target=lambda: asyncio.run(db.get_accounts(self))).start()
+
+        self.select_frame_by_name("frame_6")
 
     def frame_4_button_event(self):
         self.select_frame_by_name("frame_4")
@@ -481,7 +528,7 @@ class App2(CTkFrame):
                 selected_data.append(child.get())
         for i in range(len(selected_data)):
             data[list(data.keys())[i]] = selected_data[i]
-
+        secretvars.data["account_data"] = data
         self.applicant = Applicant(**data)
         self.disable_applcant_data()
         self.print_in_log("تم تحديد بيانات المستخدم", color=success)
@@ -513,10 +560,17 @@ class App2(CTkFrame):
                     return False
         return True
 
-    def browse_file(self, type):
-        file_path = filedialog.askopenfilename(
-            initialdir=os.curdir, title="Select a File"
-        )
+    def browse_file(self, type, file_path=None, should_pop_up=True):
+        if should_pop_up:
+            file_path = filedialog.askopenfilename(
+                initialdir=os.curdir, title="Select a File"
+            )
+        if not (os.path.exists(file_path)):
+            messagebox.showerror(
+                title="خطأ",
+                message="الملف {0} غير موجود".format(file_path.split("/")[-1]),
+            )
+            return
         self.documents[type][0] = file_path
         match type:
             case "passport":
@@ -524,16 +578,19 @@ class App2(CTkFrame):
                 self.passport_img_state.configure(
                     text=file_path.split("/")[-1], text_color=success
                 )
+                secretvars.data["media"]["passport"] = file_path
             case "nulla":
                 self.print_in_log("تم تحديد صورة الهوية", color=info)
                 self.nulla_img_state.configure(
                     text=file_path.split("/")[-1], text_color=success
                 )
+                secretvars.data["media"]["nulla"] = file_path
             case "phoneNumber":
                 self.print_in_log("تم تحديد رقم الهاتف", color=info)
                 self.phonenum_img_state.configure(
                     text=file_path.split("/")[-1], text_color=success
                 )
+                secretvars.data["media"]["phoneNumber"] = file_path
 
     def print_in_log(self, text, color=info, url=""):
         current_time = datetime.now().strftime("%H:%M:%S")
@@ -721,6 +778,65 @@ class App2(CTkFrame):
         Thread(target=lambda: asyncio.run(rescute_otp(account, self))).start()
         self.select_frame_by_name("frame_5")
 
+    def clear_all_entries(self):
+        for widget in self.second_frame.winfo_children():
+            if isinstance(widget, CTkEntry):
+                widget.delete(0, "end")
+
+        for widget in self.home_frame.winfo_children():
+            if isinstance(widget, CTkEntry):
+                widget.delete(0, "end")
+
+    def load_data(self, data):
+        try:
+            for account in self.applicants:
+                account.destroy()
+            self.enable_applcant_data()
+            self.edit_img_data()
+            self.enbale_home_data()
+            self.clear_all_entries()
+            account_data = data["account_data"]
+            users = data["users"]
+            media = data["media"]
+            self.birthdate_entry.insert(0, account_data["birthDate"])
+            self.gender_entry.set(
+                render_text("ذكر")
+                if account_data["gender"] == "M"
+                else render_text("انثي")
+            )
+            self.residenceAddress_entry.insert(0, account_data["residenceAddress"])
+            self.passportNumber_entry.insert(0, account_data["passportNumber"])
+            self.passportDateOfIssue_entry.insert(
+                0, account_data["passportDateOfIssue"]
+            )
+            self.passportDateOfExpiry_entry.insert(
+                0, account_data["passportDateOfExpiry"]
+            )
+            for user in users:
+                self.add_applicant(user["name"], user["password"], False)
+            for key in media:
+                if media[key]:
+                    self.browse_file(key, media[key], False)
+
+            self.otp_entry.insert(0, data["otp"])
+            self.office_id_option.set(data["office"])
+            self.visa_price_options.set(data["visa_price"])
+
+        except Exception as e:
+            print(e)
+            self.enable_customer_display()
+
+    def disable_customer_display(self):
+        self.customer_manager.disable()
+        self.customers_display.disable()
+
+    def enable_customer_display(self):
+        self.customer_manager.enable()
+        self.customers_display.enable()
+
+    def refresh_customer_display(self):
+        self.frame_6_button_event()
+
 
 class AccountFrame(CTkFrame):
     def __init__(self, name, password, hidden=False, *args, **kwargs):
@@ -754,6 +870,222 @@ class AccountFrame(CTkFrame):
     def change_color(self):
         self.account_name.configure(text_color=success)
         self.account_password.configure(text_color=success)
+
+
+class CustomersManagement(CTkFrame):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.main_window = self.master.master
+        self.grid_columnconfigure((0, 1, 2), weight=1, uniform="column")
+        self.customer_lbl = CTkLabel(
+            self, text=render_text("اسم العميل"), font=CTkFont(size=15)
+        )
+        self.customer_entry = CTkEntry(self, width=100)
+        self.save_customer_btn = CTkButton(
+            self,
+            text=render_text("حفظ"),
+            font=CTkFont(size=15, weight="bold"),
+            width=100,
+            command=self.save_customer,
+            fg_color=success_btn,
+            hover_color=success_hover,
+        )
+
+        self.customer_lbl.grid(row=0, column=2, sticky="nsew", padx=5)
+        self.customer_entry.grid(row=0, column=1, sticky="nsew", padx=5)
+        self.save_customer_btn.grid(row=0, column=0, sticky="nsew", padx=5)
+
+        self.customer_entry.bind("<KeyRelease>", self.on_entry_change)
+
+        self.progress_bar = None
+        self.progress_label = None
+
+    def on_entry_change(self, event):
+        text = self.customer_entry.get()
+        self.main_window.customers_display.filter_customers(text)
+
+    def save_customer(self):
+        if self.customer_entry.get() == "":
+            messagebox.showerror("خطأ", "برجاء عدم ترك خانة اسم العميل فارغة")
+            return
+
+        if not (self.main_window.validate_all_fields()):
+            return
+
+        name = self.customer_entry.get()
+        secretvars.data["office"] = self.main_window.office_id_option.get()
+        secretvars.data["visa_price"] = self.main_window.visa_price_options.get()
+        secretvars.data["otp"] = self.main_window.otp_entry.get()
+        users = self.main_window.get_all_applicants()
+        secretvars.data["users"] = []
+        for user in users:
+            secretvars.data["users"].append(
+                {"name": user[0], "password": user[1], "accepted": False}
+            )
+        Thread(
+            target=lambda: asyncio.run(db.save_account(self.main_window, name))
+        ).start()
+        self.customer_entry.delete(0, "end")
+
+    def disable(self):
+        self.customer_entry.configure(state="disabled")
+        self.save_customer_btn.configure(state="disabled")
+
+    def enable(self):
+        self.customer_entry.configure(state="normal")
+        self.save_customer_btn.configure(state="normal")
+
+
+class CustomerDisplay(CTkScrollableFrame):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.customers = []
+        self.grid_columnconfigure(0, weight=1)
+        self.display_customers(self.customers)
+
+    def filter_customers(self, text):
+        new_customers = [
+            customer for customer in self.customers if text in customer.name
+        ]
+        self.display_customers(new_customers)
+
+    def forgeT_all_componoents(self):
+        for customer in self.winfo_children():
+            customer.grid_forget()
+
+    def display_customers(self, customers):
+        self.forgeT_all_componoents()
+        accepted_customers = [
+            customer
+            for customer in customers
+            if customer.is_accepted and not customer.is_booked
+        ]
+        booked_customers = [customer for customer in customers if customer.is_booked]
+        rest_of_customers = [
+            customer
+            for customer in customers
+            if not customer.is_accepted and not customer.is_booked
+        ]
+        total = accepted_customers + booked_customers + rest_of_customers
+        for m in range(len(total)):
+            total[m].grid(row=m, column=0, sticky="nsew", pady=5, padx=5)
+
+    def add_customer(self, customer_name, owner_id, customer_id, is_accepted, is_booked):
+        customer = Customer(
+            master=self,
+            name=customer_name,
+            id=customer_id,
+            is_accepted=is_accepted,
+            is_booked=is_booked,
+            owner_id=owner_id
+        )
+        self.customers.append(customer)
+
+    def refresh(self):
+        self.destroy_spinner()
+        self.display_customers(self.customers)
+
+    def disable(self):
+        try:
+
+            for child in self.customers:
+
+                child.disable()
+        except Exception as e:
+            pass
+
+    def enable(self):
+        try:
+            for child in self.customers:
+                child.enable()
+        except Exception as e:
+            pass
+
+    def show_spinner(self):
+        self.progress_bar = CTkProgressBar(
+            self, mode="indeterminate", indeterminate_speed=1, progress_color=warning
+        )
+        self.progress_label = CTkLabel(
+            self,
+            text="جاري التحميل",
+            font=CTkFont(family="Segoe UI", size=15),
+            text_color=warning,
+        )
+        self.progress_bar.start()
+        self.progress_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.progress_bar.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+
+    def destroy_spinner(self):
+        self.progress_bar.destroy()
+        self.progress_label.destroy()
+
+
+class Customer(CTkFrame):
+    def __init__(self, name, id, owner_id ,is_accepted, is_booked, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.main_window = self.master.master.master.master.master
+        self.is_accepted = is_accepted
+        self.is_booked = is_booked
+        self.id = id
+        self.name = name
+        self.owner_id = owner_id
+
+        self.grid_columnconfigure((0, 1, 2), weight=1, uniform="column")
+
+        self.customer_lbl = CTkLabel(
+            self, text=self.name, font=CTkFont(size=12, weight="bold")
+        )
+
+        if self.is_booked:
+            self.customer_lbl.configure(text_color=success)
+        elif self.is_accepted:
+            self.customer_lbl.configure(text_color=warning)
+        self.load_btn = CTkButton(
+            self,
+            text=render_text("تحميل"),
+            font=CTkFont(size=15, weight="bold"),
+            command=self.load,
+            fg_color=cyan_btn,
+            hover_color=cyan_hover,
+        )
+        self.delete_btn = CTkButton(
+            self,
+            text=render_text("حذف"),
+            font=CTkFont(size=15, weight="bold"),
+            command=self.delete,
+            fg_color=danger_btn,
+            hover_color=danger_hover,
+        )
+        if self.owner_id != secretvars.owner_id:
+            self.delete_btn.configure(state="disabled")
+        self.customer_lbl.grid(row=0, column=2, sticky="nsew", padx=25)
+        self.load_btn.grid(row=0, column=1, sticky="nsew", padx=25)
+        self.delete_btn.grid(row=0, column=0, sticky="nsew", padx=50)
+
+    def delete(self):
+        Thread(
+            target=lambda: asyncio.run(
+                db.delete_customer(self.main_window, self, self.id)
+            )
+        ).start()
+
+    def load(self):
+        Thread(
+            target=lambda: asyncio.run(
+                db.get_data_of_account(self.main_window, self.id)
+            )
+        ).start()
+
+    def disable(self):
+        for child in self.winfo_children():
+            child.configure(state="disabled")
+
+    def enable(self):
+        for child in self.winfo_children():
+            child.configure(state="normal")
+        if self.owner_id != secretvars.owner_id:
+            self.delete_btn.configure(state="disabled")
 
 
 class ToplevelWindow(CTkToplevel):

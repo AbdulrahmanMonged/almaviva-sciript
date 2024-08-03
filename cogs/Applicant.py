@@ -41,6 +41,9 @@ class Applicant:
     def set_passport_number(self, passportNumber):
         self.passportNumber = passportNumber
 
+    def get_passport_number(self):
+        return self.passportNumber
+
     def get_phone_number(self):
         return self.phoneNumber
 

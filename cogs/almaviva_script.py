@@ -16,6 +16,7 @@ import asyncio
 from awesometkinter.bidirender import render_text
 from .required_info import *
 import jwt
+import random
 
 capsolver.api_key = "CAP-CE0B6DD560FFC963B44E13E534D7782F"
 
@@ -62,6 +63,7 @@ class Bot:
         self.open_id_config = OPEN_ID_CONFIG
         self.send_otp = None
         self.otp_verified = False
+        self.name = ""
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -87,16 +89,16 @@ class Bot:
         self.otp = otp.get_input()
 
     def get_another_passport(self):
+
         self.window.print_in_log(
             "الباسبورت مربوط بمستخدم اخر برجاء اضافة باسبورت جديد", color=danger
         )
-        passport = CTkInputDialog(
-            text=render_text(
-                "قم بوضع رقم باسبورت جديد لان الرقم الحالي مربوط بمستخدم اخر"
-            ),
-            title="Passport",
+        new_passport = list(self.applicant.get_passport_number())
+        new_passport.insert(
+            random.randint(0, len(self.applicant.get_passport_number()) - 1), "\u200b"
         )
-        self.applicant.set_passport_number(passport.get_input())
+        new_str = "".join(new_passport)
+        self.applicant.set_passport_number(new_str)
 
     async def verify_otp(self, session):
 
@@ -188,7 +190,7 @@ class Bot:
     async def async_get_available_slots(self, session):
         try:
             self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-07-30&type=WEB"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-08-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -278,6 +280,7 @@ class Bot:
             "email": decoded_token["email"],
             "phone": decoded_token["phone_number"],
         }
+        self.name = decoded_token["name"]
         self.applicant.set_new_data(data)
 
     async def async_book(self, slot, session):
@@ -293,7 +296,7 @@ class Bot:
             }
             body = {
                 "officeId": self.office_id,
-                "tripDate": "2024-07-30",
+                "tripDate": "2024-08-30",
                 "tripDestination": "roma",
                 "termandcond": True,
                 "idServiceLevel": self.serviceLevel,
@@ -314,7 +317,14 @@ class Bot:
                 data = await response.json()
                 self.payment_link = data["sessionId"]
                 self.main_thread_flag = 0
+                secretvars.data["booked"] = True
+                threading.Thread(
+                    target=lambda: asyncio.run(
+                        db.update_account(self.window, self.name)
+                    )
+                ).start()
                 secretvars.MAIN_FLAG = 0
+
                 return data["sessionId"]
             elif response.status == 400:
                 if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
@@ -335,6 +345,7 @@ class Bot:
                     await self.get_recaptcha()
                     return await self.async_book(slot, session)
                 if "Passport" in result["message"]:
+                    await db.check_passport()
                     self.get_another_passport()
                     return await self.async_book(slot, session)
         except Exception as e:
@@ -361,27 +372,52 @@ class Bot:
                                 color=danger,
                             )
                             return
-                    threading.Thread(
-                        target=lambda: asyncio.run(
-                            db.write_user(self.username, self.password)
+                    elif type(slots) == list:
+                        threading.Thread(
+                            target=lambda: asyncio.run(
+                                db.write_user(self.username, self.password)
+                            )
+                        ).start()
+                        secretvars.data["accepted"] = True
+                        secretvars.data["users"] = []
+                        secretvars.data["users"].append(
+                            {
+                                "name": self.username,
+                                "password": self.password,
+                                "accepted": True,
+                            }
                         )
-                    ).start()
-                    await self.async_login_handler([self.username, self.password], True)
-                    if not self.otp and self.main_thread_flag:
-                        await self.async_send_otp(session)
-                    else:
-                        self.otp_verified = 1
+                        threading.Thread(
+                            target=lambda: asyncio.run(
+                                db.update_account(self.window, self.name)
+                            )
+                        ).start()
+                        await self.async_login_handler(
+                            [self.username, self.password], True
+                        )
+                        if not self.otp and self.main_thread_flag:
+                            await self.async_send_otp(session)
+                        else:
+                            self.otp_verified = 1
 
-                    self.applicant.set_bot(self)
-                    if self.main_thread_flag and self.otp_verified:
-                        for date in slots:
-                            if self.booked:
-                                return
-                            await self.async_book(slot=date, session=session)
-                            if self.payment_link:
-                                self.write_payment_link(self.payment_link)
-                            if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
-                                return
+                        self.applicant.set_bot(self)
+                        if self.main_thread_flag and self.otp_verified:
+                            for date in slots:
+                                if self.booked:
+                                    return
+                                await self.async_book(slot=date, session=session)
+                                if self.payment_link:
+                                    self.write_payment_link(self.payment_link)
+                                if (
+                                    self.main_thread_flag == 0
+                                    or secretvars.MAIN_FLAG == 0
+                                ):
+                                    return
+                    else:
+                        self.window.print_in_log(
+                            "عذرا لا يوجد مواعيد متاحة للحجز...برجاء المحاولة مرة اخري",
+                            color=danger,
+                        )
                 else:
                     self.window.print_in_log(
                         "عذرا لا يوجد مواعيد متاحة للحجز...برجاء المحاولة مرة اخري",
