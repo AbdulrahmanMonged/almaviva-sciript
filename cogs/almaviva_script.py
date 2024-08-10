@@ -17,6 +17,7 @@ from awesometkinter.bidirender import render_text
 from .required_info import *
 import jwt
 import random
+from anticaptchaofficial.recaptchav2proxyless import *
 
 capsolver.api_key = "CAP-CE0B6DD560FFC963B44E13E534D7782F"
 
@@ -64,6 +65,13 @@ class Bot:
         self.send_otp = None
         self.otp_verified = False
         self.name = ""
+        self.solver = recaptchaV2Proxyless()
+        self.solver.set_verbose(0)
+        self.solver.set_key("8a77a79c369925e7886472762e2a21a8")
+        self.solver.set_website_url("https://egy.almaviva-visa.it/appointment")
+        self.solver.set_website_key("6Lc4mLUpAAAAAN0TB4rHNAQS1Zbt5yfghaZ17w-A")
+        self.solver.set_is_invisible(True)
+        self.solver.set_soft_id(0)
 
     def add_applicant(self, applicant):
         applicant.set_bot(self)
@@ -148,15 +156,17 @@ class Bot:
     async def get_recaptcha(self):
         try:
             self.window.print_in_log("جاري التحقق من كابتشا...", color=warning)
-            response = capsolver.solve(
-                {
-                    "type": "ReCaptchaV2TaskProxyLess",
-                    "websiteURL": "https://egy.almaviva-visa.it/appointment",
-                    "websiteKey": "6Lc4mLUpAAAAAN0TB4rHNAQS1Zbt5yfghaZ17w-A",
-                    "isInvisible": True,
-                }
-            )
-            self.recaptcha = response["gRecaptchaResponse"]
+            # response = capsolver.solve(
+            #     {
+            #         "type": "ReCaptchaV2TaskProxyLess",
+            #         "websiteURL": "https://egy.almaviva-visa.it/appointment",
+            #         "websiteKey": "6Lc4mLUpAAAAAN0TB4rHNAQS1Zbt5yfghaZ17w-A",
+            #         "isInvisible": True,
+            #     }
+            # )
+            # self.recaptcha = response["gRecaptchaResponse"]
+            
+            self.recaptcha = self.solver.solve_and_return_solution()
             self.window.print_in_log("تم التحقق من الكابتشا بنجاح", color=success)
         except Exception as e:
             print(e)
@@ -283,74 +293,82 @@ class Bot:
         self.name = decoded_token["name"]
         self.applicant.set_new_data(data)
 
-    async def async_book(self, slot, session):
+    async def async_book(self, slots ,session):
         try:
-            headers = {
-                "Authorization": f"Bearer {self.token}",
-                "Recaptcha": self.recaptcha,
-                "Accept-Language": "en",
-                "Content-Type": "application/json",
-                "Accept": "application/json, text/plain, */*",
-                "DeviceOperatingSystem": "web",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            }
-            body = {
-                "officeId": self.office_id,
-                "tripDate": "2024-08-30",
-                "tripDestination": "roma",
-                "termandcond": True,
-                "idServiceLevel": self.serviceLevel,
-                "applicants": [self.applicant.get_applicant_json()],
-                "slotStartDate": slot,
-                "source": "WEB",
-                "privacyPolicy": True,
-                "otp": self.otp,
-            }
-            URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
-            response = await session.post(URL, headers=headers, data=json.dumps(body))
-            self.window.print_in_log("جاري الحجز...", color=warning)
-            print(response.status, await response.text())
-            result = await response.json()
-            if response.status == 201:
-                self.booked = 1
-                self.window.print_in_log("تم الحجز بنجاح", color=success)
-                data = await response.json()
-                self.payment_link = data["sessionId"]
-                self.main_thread_flag = 0
-                secretvars.data["booked"] = True
-                threading.Thread(
-                    target=lambda: asyncio.run(
-                        db.update_account(self.window, self.name)
-                    )
-                ).start()
-                secretvars.MAIN_FLAG = 0
+            if self.main_thread_flag:
+                slot = random.choice(slots)
+                headers = {
+                    "Authorization": f"Bearer {self.token}",
+                    "Recaptcha": self.recaptcha,
+                    "Accept-Language": "en",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/plain, */*",
+                    "DeviceOperatingSystem": "web",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "same-site",
+                    "Origin": "https://egy.almaviva-visa.it",
+                    "Sec-Ch-Ua-Mobile": "?0",
+                    "Sec-Ch-Ua-Platform": "Windows",
+                }
+                body = {
+                    "officeId": self.office_id,
+                    "tripDate": "2024-08-30",
+                    "tripDestination": "roma",
+                    "termandcond": True,
+                    "idServiceLevel": self.serviceLevel,
+                    "applicants": [self.applicant.get_applicant_json()],
+                    "slotStartDate": slot,
+                    "source": "WEB",
+                    "privacyPolicy": True,
+                    "otp": self.otp,
+                }
+                URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
+                response = await session.post(URL, headers=headers, data=json.dumps(body))
+                self.window.print_in_log("جاري الحجز...", color=warning)
+                print(response.status, await response.text())
+                result = await response.json()
+                if response.status == 201:
+                    self.booked = 1
+                    self.window.print_in_log("تم الحجز بنجاح", color=success)
+                    data = await response.json()
+                    self.payment_link = data["sessionId"]
+                    self.main_thread_flag = 0
+                    secretvars.data["booked"] = True
+                    threading.Thread(
+                        target=lambda: asyncio.run(
+                            db.update_account(self.window, self.name)
+                        )
+                    ).start()
+                    secretvars.MAIN_FLAG = 0
 
-                return data["sessionId"]
-            elif response.status == 400:
-                if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
-                    return None
-                if "Document" in result["message"]:
-                    self.window.print_in_log(
-                        "يوجد خطا في تحمييل المستندات....جاري اعادة محاولة رفع المستندات",
-                        color=danger,
-                    )
-                    self.documents = self.copied_documents
-                    self.applicant.remove_documents()
-                    await self.async_upload_documents(session)
-                    return await self.async_book(slot, session)
-                if "captcha" in result["message"].lower():
-                    self.window.print_in_log(
-                        "تم انتهاء الكابتشا...جاري حل الكابشتا من جديد", color=danger
-                    )
-                    await self.get_recaptcha()
-                    return await self.async_book(slot, session)
-                if "Passport" in result["message"]:
-                    await db.check_passport()
-                    self.get_another_passport()
-                    return await self.async_book(slot, session)
+                    return data["sessionId"]
+                elif response.status == 400:
+                    if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
+                        return None
+                    if "Document" in result["message"]:
+                        self.window.print_in_log(
+                            "يوجد خطا في تحمييل المستندات....جاري اعادة محاولة رفع المستندات",
+                            color=danger,
+                        )
+                        self.documents = self.copied_documents
+                        self.applicant.remove_documents()
+                        await self.async_upload_documents(session)
+                        return await self.async_book(slots, session)
+                    if "captcha" in result["message"].lower():
+                        self.window.print_in_log(
+                            "تم انتهاء الكابتشا...جاري حل الكابشتا من جديد", color=danger
+                        )
+                        await self.get_recaptcha()
+                        return await self.async_book(slots, session)
+                    if "Passport" in result["message"]:
+                        await db.check_passport()
+                        self.get_another_passport()
+                        return await self.async_book(slots, session)
         except Exception as e:
             print("BOOKING ERROR", e)
-            return None
+            return await self.async_book(slots, session)
 
     async def async_after_confirmation(self):
         try:
@@ -359,7 +377,7 @@ class Bot:
                 tasks = [
                     self.async_get_available_slots(session),
                     self.async_upload_documents(session),
-                    self.get_recaptcha(),
+                    
                     self.async_get_account_data(),
                 ]
                 if self.availability and (not self.booked):
@@ -402,17 +420,15 @@ class Bot:
 
                         self.applicant.set_bot(self)
                         if self.main_thread_flag and self.otp_verified:
-                            for date in slots:
-                                if self.booked:
-                                    return
-                                await self.async_book(slot=date, session=session)
-                                if self.payment_link:
-                                    self.write_payment_link(self.payment_link)
-                                if (
-                                    self.main_thread_flag == 0
-                                    or secretvars.MAIN_FLAG == 0
-                                ):
-                                    return
+                            await self.get_recaptcha(),
+                            await self.async_book(slots=slots,session=session)
+                            if self.payment_link:
+                                self.write_payment_link(self.payment_link)
+                            if (
+                                self.main_thread_flag == 0
+                                or secretvars.MAIN_FLAG == 0
+                            ):
+                                return
                     else:
                         self.window.print_in_log(
                             "عذرا لا يوجد مواعيد متاحة للحجز...برجاء المحاولة مرة اخري",

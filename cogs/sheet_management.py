@@ -35,7 +35,6 @@ class dbManagement:
                     await db.commit()
         except Exception as e:
             print(e)
-            await self.init_connection()
             await self.start_excution(logged_user, logged_password)
 
     async def finish_excution(self, paymentGate):
