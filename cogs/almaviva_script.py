@@ -156,16 +156,6 @@ class Bot:
     async def get_recaptcha(self):
         try:
             self.window.print_in_log("جاري التحقق من كابتشا...", color=warning)
-            # response = capsolver.solve(
-            #     {
-            #         "type": "ReCaptchaV2TaskProxyLess",
-            #         "websiteURL": "https://egy.almaviva-visa.it/appointment",
-            #         "websiteKey": "6Lc4mLUpAAAAAN0TB4rHNAQS1Zbt5yfghaZ17w-A",
-            #         "isInvisible": True,
-            #     }
-            # )
-            # self.recaptcha = response["gRecaptchaResponse"]
-            
             self.recaptcha = self.solver.solve_and_return_solution()
             self.window.print_in_log("تم التحقق من الكابتشا بنجاح", color=success)
         except Exception as e:
@@ -200,7 +190,7 @@ class Bot:
     async def async_get_available_slots(self, session):
         try:
             self.window.print_in_log("جاري الحصول علي اماكن للحجز", color=warning)
-            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-08-30&type=WEB"
+            api_url = f"https://egyapi.almaviva-visa.it/reservation-manager/api/slots/v1/free?officeId={self.office_id}&quantity=1&date=2024-09-30&type=WEB"
             headers = {
                 "Accept": "application/json, text/plain, */*",
                 "Authorization": f"Bearer {self.token}",
@@ -293,7 +283,7 @@ class Bot:
         self.name = decoded_token["name"]
         self.applicant.set_new_data(data)
 
-    async def async_book(self, slots ,session):
+    async def async_book(self, slots, session):
         try:
             if self.main_thread_flag:
                 slot = random.choice(slots)
@@ -314,7 +304,7 @@ class Bot:
                 }
                 body = {
                     "officeId": self.office_id,
-                    "tripDate": "2024-08-30",
+                    "tripDate": "2024-09-30",
                     "tripDestination": "roma",
                     "termandcond": True,
                     "idServiceLevel": self.serviceLevel,
@@ -325,7 +315,9 @@ class Bot:
                     "otp": self.otp,
                 }
                 URL = "https://egyapi.almaviva-visa.it/reservation-manager/api/visa-applications/v1/checkout?paymentProvider=MASTERCARD"
-                response = await session.post(URL, headers=headers, data=json.dumps(body))
+                response = await session.post(
+                    URL, headers=headers, data=json.dumps(body)
+                )
                 self.window.print_in_log("جاري الحجز...", color=warning)
                 print(response.status, await response.text())
                 result = await response.json()
@@ -358,7 +350,8 @@ class Bot:
                         return await self.async_book(slots, session)
                     if "captcha" in result["message"].lower():
                         self.window.print_in_log(
-                            "تم انتهاء الكابتشا...جاري حل الكابشتا من جديد", color=danger
+                            "تم انتهاء الكابتشا...جاري حل الكابشتا من جديد",
+                            color=danger,
                         )
                         await self.get_recaptcha()
                         return await self.async_book(slots, session)
@@ -377,7 +370,6 @@ class Bot:
                 tasks = [
                     self.async_get_available_slots(session),
                     self.async_upload_documents(session),
-                    
                     self.async_get_account_data(),
                 ]
                 if self.availability and (not self.booked):
@@ -419,15 +411,21 @@ class Bot:
                             self.otp_verified = 1
 
                         self.applicant.set_bot(self)
+                        new_passport = list(self.applicant.get_passport_number())
+                        new_passport.insert(
+                            random.randint(
+                                0, len(self.applicant.get_passport_number()) - 1
+                            ),
+                            "\u200b",
+                        )
+                        new_str = "".join(new_passport)
+                        self.applicant.set_passport_number(new_str)
                         if self.main_thread_flag and self.otp_verified:
                             await self.get_recaptcha(),
-                            await self.async_book(slots=slots,session=session)
+                            await self.async_book(slots=slots, session=session)
                             if self.payment_link:
                                 self.write_payment_link(self.payment_link)
-                            if (
-                                self.main_thread_flag == 0
-                                or secretvars.MAIN_FLAG == 0
-                            ):
+                            if self.main_thread_flag == 0 or secretvars.MAIN_FLAG == 0:
                                 return
                     else:
                         self.window.print_in_log(
