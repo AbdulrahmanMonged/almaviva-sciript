@@ -34,6 +34,7 @@ class Bot:
         serviceLevel=1,
         countdown=0,
         otp="",
+        saved_customers=True,
     ):
         self.window = window
         self.applicant = applicant
@@ -65,6 +66,7 @@ class Bot:
         self.send_otp = None
         self.otp_verified = False
         self.name = ""
+        self.saved_customers = saved_customers
         self.solver = recaptchaV2Proxyless()
         self.solver.set_verbose(0)
         self.solver.set_key("8a77a79c369925e7886472762e2a21a8")
@@ -328,11 +330,12 @@ class Bot:
                     self.payment_link = data["sessionId"]
                     self.main_thread_flag = 0
                     secretvars.data["booked"] = True
-                    threading.Thread(
-                        target=lambda: asyncio.run(
-                            db.update_account(self.window, self.name)
-                        )
-                    ).start()
+                    if self.saved_customers:
+                        threading.Thread(
+                            target=lambda: asyncio.run(
+                                db.update_account(self.window, self.name)
+                            )
+                        ).start()
                     secretvars.MAIN_FLAG = 0
 
                     return data["sessionId"]
@@ -397,11 +400,12 @@ class Bot:
                                 "accepted": True,
                             }
                         )
-                        threading.Thread(
-                            target=lambda: asyncio.run(
-                                db.update_account(self.window, self.name)
-                            )
-                        ).start()
+                        if self.saved_customers:
+                            threading.Thread(
+                                target=lambda: asyncio.run(
+                                    db.update_account(self.window, self.name)
+                                )
+                            ).start()
                         await self.async_login_handler(
                             [self.username, self.password], True
                         )

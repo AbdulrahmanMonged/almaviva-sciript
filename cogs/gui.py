@@ -28,6 +28,7 @@ class App2(CTkFrame):
         self.applicants = []
         self.bot = None
         self.start_delay = None
+        self.saved_operations = True
         self.visa_id = 3
         self.documents = (
             {"passport": [None, 100]}
@@ -120,19 +121,6 @@ class App2(CTkFrame):
         )
         self.frame_5_button.grid(row=6, column=0, sticky="ew")
 
-        self.frame_6_button = CTkButton(
-            self.navigation_frame,
-            corner_radius=0,
-            height=40,
-            border_spacing=10,
-            text=render_text("العمليات المحفوظة"),
-            fg_color="transparent",
-            text_color=("gray10", "gray90"),
-            hover_color=("gray70", "gray30"),
-            command=self.frame_6_button_event,
-        )
-        self.frame_6_button.grid(row=5, column=0, sticky="ew")
-
         self.home_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.second_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.third_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -142,8 +130,10 @@ class App2(CTkFrame):
         self.fifth_frame = CTkScrollableFrame(
             self, corner_radius=0, fg_color="transparent"
         )
+        
+        if self.saved_operations:
+            self.enable_saved_customers()
 
-        self.sixth_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
 
         self.select_frame_by_name("home")
 
@@ -392,11 +382,6 @@ class App2(CTkFrame):
         self.account_test.grid(
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
         )
-        ###############################SAVED OPERATIONS#####################################
-        self.customers_display = CustomerDisplay(self.sixth_frame)
-        self.customers_display.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.customer_manager = CustomersManagement(self.sixth_frame)
-        self.customer_manager.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
         #############################################################################
 
@@ -404,9 +389,7 @@ class App2(CTkFrame):
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(4, weight=1)
 
-        self.sixth_frame.grid_columnconfigure(0, weight=1)
-        self.sixth_frame.grid_rowconfigure(0, weight=9)
-        self.sixth_frame.grid_rowconfigure(1, weight=1)
+        
 
         #############################################################################
 
@@ -431,9 +414,16 @@ class App2(CTkFrame):
         self.frame_4_button.configure(
             fg_color=("gray75", "gray25") if name == "frame_4" else "transparent"
         )
-        self.frame_6_button.configure(
-            fg_color=("gray75", "gray25") if name == "frame_6" else "transparent"
-        )
+        if self.saved_operations:
+            self.frame_6_button.configure(
+                fg_color=("gray75", "gray25") if name == "frame_6" else "transparent"
+            )
+            if name == "frame_6":
+                self.sixth_frame.grid(row=0, column=1, sticky="nsew")
+            else:
+                self.sixth_frame.grid_forget()
+
+        
 
         if name == "home":
             self.home_frame.grid(row=0, column=1, sticky="nsew")
@@ -460,11 +450,7 @@ class App2(CTkFrame):
         else:
             self.fourth_frame.grid_forget()
 
-        if name == "frame_6":
-            self.sixth_frame.grid(row=0, column=1, sticky="nsew")
-        else:
-            self.sixth_frame.grid_forget()
-
+        
     def home_button_event(self):
         self.select_frame_by_name("home")
 
@@ -477,6 +463,7 @@ class App2(CTkFrame):
     def frame_5_button_event(self):
         self.select_frame_by_name("frame_5")
 
+    
     def frame_6_button_event(self):
         self.customers_display.customers = []
         Thread(target=lambda: asyncio.run(db.get_accounts(self))).start()
@@ -709,6 +696,7 @@ class App2(CTkFrame):
             1 if self.visa_price_options.get() == "Standard - EGP 1750" else 2,
             self.start_with_timer_check.get() == "on",
             self.otp_entry.get(),
+            self.saved_operations,
         )
         self.bot.accounts = self.get_all_applicants()
         Thread(target=self.bot.start_booking).start()
@@ -836,6 +824,36 @@ class App2(CTkFrame):
 
     def refresh_customer_display(self):
         self.frame_6_button_event()
+    
+    def enable_saved_customers(self):
+        self.frame_6_button = CTkButton(
+            self.navigation_frame,
+            corner_radius=0,
+            height=40,
+            border_spacing=10,
+            text=render_text("العمليات المحفوظة"),
+            fg_color="transparent",
+            text_color=("gray10", "gray90"),
+            hover_color=("gray70", "gray30"),
+            command=self.frame_6_button_event,
+        )
+        self.frame_6_button.grid(row=5, column=0, sticky="ew")
+        self.sixth_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
+        
+         ###############################SAVED OPERATIONS#####################################
+        self.customers_display = CustomerDisplay(self.sixth_frame)
+        self.customers_display.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.customer_manager = CustomersManagement(self.sixth_frame)
+        self.customer_manager.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+        
+        #####################################################################################
+        
+        self.sixth_frame.grid_columnconfigure(0, weight=1)
+        self.sixth_frame.grid_rowconfigure(0, weight=9)
+        self.sixth_frame.grid_rowconfigure(1, weight=1)
+        
+        
+        
 
 
 class AccountFrame(CTkFrame):
