@@ -42,6 +42,7 @@ class App(CTk):
         self.status.place(relx=0.5, rely=0.1, anchor=CENTER)
         self.bind("<Return>", self.submit)
 
+        
     def submit(self, event=None):
         if self.validation():
             self.disable()
@@ -91,7 +92,7 @@ class App(CTk):
     def init_canva(self):
         self.bind("<Return>", lambda e: "break")
         self.destroy_login()
-        self.geometry("960x480")
+        self.geometry("1280x520")
         frame = gui.App2(self)
         frame.pack(side="top", fill="both", expand=True)
         self.grid_rowconfigure(0, weight=1)

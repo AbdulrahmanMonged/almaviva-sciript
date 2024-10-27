@@ -12,8 +12,8 @@ from .Countdown import Countdown
 from . import secretvars
 from .sheet_management import db
 import asyncio
-from .rescue import rescute_otp
-
+from pprint import pp
+from .Account import Account
 
 
 class App2(CTkFrame):
@@ -21,14 +21,16 @@ class App2(CTkFrame):
         super().__init__(master, *args, **kwargs)
         self.target_hour = 7
         self.target_minute = 59
-        self.target_second = 52
+        self.target_second = 57
         self.count = 0
         self.labels = []
         self.applicant = None
         self.applicants = []
+        self.new_users = []
+
         self.bot = None
         self.start_delay = None
-        self.saved_operations = True
+        self.saved_operations = False
         self.visa_id = 3
         self.documents = (
             {"passport": [None, 100]}
@@ -69,32 +71,6 @@ class App2(CTkFrame):
         )
         self.home_button.grid(row=1, column=0, sticky="ew")
 
-        self.frame_2_button = CTkButton(
-            self.navigation_frame,
-            corner_radius=0,
-            height=40,
-            border_spacing=10,
-            text=render_text("معلومات العميل"),
-            fg_color="transparent",
-            text_color=("gray10", "gray90"),
-            hover_color=("gray70", "gray30"),
-            command=self.frame_2_button_event,
-        )
-        self.frame_2_button.grid(row=3, column=0, sticky="ew")
-
-        self.frame_3_button = CTkButton(
-            self.navigation_frame,
-            corner_radius=0,
-            height=40,
-            border_spacing=10,
-            text=render_text("المستندات"),
-            fg_color="transparent",
-            text_color=("gray10", "gray90"),
-            hover_color=("gray70", "gray30"),
-            command=self.frame_3_button_event,
-        )
-        self.frame_3_button.grid(row=4, column=0, sticky="ew")
-
         self.frame_4_button = CTkButton(
             self.navigation_frame,
             corner_radius=0,
@@ -130,10 +106,9 @@ class App2(CTkFrame):
         self.fifth_frame = CTkScrollableFrame(
             self, corner_radius=0, fg_color="transparent"
         )
-        
+
         if self.saved_operations:
             self.enable_saved_customers()
-
 
         self.select_frame_by_name("home")
 
@@ -145,46 +120,25 @@ class App2(CTkFrame):
         self.fifth_frame.grid_columnconfigure(0, weight=5)
         self.fourth_frame.grid_columnconfigure(0, weight=5)
 
+        self.fill_data_toplevel_window = None
+        self.book_data_toplevel_window = None
+        self.top_views = []
+
+        
         ###############################  HOME_FRAME #####################################
 
         self.username_label = CTkLabel(
             self.home_frame, text=render_text("اسم المستخدم")
         )
-        self.username_label.grid(row=0, column=2, sticky="nsew")
-        self.username_entry = CTkEntry(self.home_frame, width=170)
-        self.username_entry.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.password_label = CTkLabel(self.home_frame, text=render_text("كلمة المرور"))
-        self.password_label.grid(row=1, column=2, sticky="nsew")
-        self.password_entry = CTkEntry(self.home_frame, show="*", width=170)
-        self.password_entry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
         self.add_applicant_btn = CTkButton(
             self.home_frame,
             width=170,
             text=render_text("اضافة مستخدم"),
-            command=lambda: self.add_applicant(
-                self.username_entry.get(), self.password_entry.get()
-            ),
+            command=self.open_fillDataTopLevel,
         )
         self.add_applicant_btn.grid(row=2, column=1, sticky="s", padx=5, pady=5)
-        self.add_many_applicants_btn = CTkButton(
-            self.home_frame,
-            width=170,
-            text=render_text("اضافة مستخدمين"),
-            command=self.open_account_window,
-            fg_color=primary_btn,
-            hover_color=primary_hover,
-        )
-        self.add_many_applicants_btn.grid(row=3, column=1, sticky="s", padx=5, pady=5)
         self.save_password_check = StringVar(value="on")
         self.start_with_timer_check = StringVar(value="on")
-        self.save_password = CTkCheckBox(
-            self.home_frame,
-            text=render_text("حفظ كلمة المرور"),
-            variable=self.save_password_check,
-            onvalue="on",
-            offvalue="off",
-        )
-        self.save_password.grid(row=2, column=0, sticky="s", padx=5, pady=5)
 
         self.start_with_timer_lbl = CTkLabel(
             self.home_frame, text=render_text("بدء الساعة التاسعة صباحا")
@@ -204,15 +158,6 @@ class App2(CTkFrame):
         )
         self.visa_price_options.grid(row=5, column=1, sticky="s", padx=5, pady=5)
 
-        self.mode_lbl = CTkLabel(self.home_frame, text=render_text("الوضع"))
-        self.mode_lbl.grid(row=6, column=2, sticky="s", padx=5, pady=5)
-        self.mode_option = CTkOptionMenu(
-            self.home_frame,
-            values=[render_text("البحث عن حجز"), render_text("استكمال حجز")],
-            width=170,
-        )
-        self.mode_option.grid(row=6, column=1, sticky="s", padx=5, pady=5)
-
         self.start_with_timer_lbl.grid(row=9, column=2, sticky="s", padx=5, pady=5)
         self.start_with_timer_switch = CTkSwitch(
             self.home_frame,
@@ -222,21 +167,6 @@ class App2(CTkFrame):
             offvalue="off",
         )
         self.start_with_timer_switch.grid(row=9, column=1, sticky="s", padx=5, pady=5)
-        self.otp_label = CTkLabel(self.home_frame, text="OTP")
-        self.otp_label.grid(row=7, column=2, sticky="nsew", padx=5, pady=5)
-        self.otp_entry = CTkEntry(self.home_frame)
-        self.otp_entry.grid(row=7, column=1, sticky="nsew", padx=5, pady=5)
-
-        self.resend_otp_lbl = CTkLabel(
-            self.home_frame, text=render_text("ارسال رمز التحقق")
-        )
-        # self.resend_otp_lbl.grid(row=8, column=2, sticky="nsew", padx=5, pady=5)
-        self.resend_otp_btn = CTkButton(
-            self.home_frame,
-            text=render_text("ارسال رمز التحقق"),
-            command=self.resend_otp,
-        )
-        # self.resend_otp_btn.grid(row=8, column=1, sticky="nsew", padx=5, pady=5)
 
         self.start_program_button = CTkButton(
             self.home_frame,
@@ -252,132 +182,11 @@ class App2(CTkFrame):
         )
         self.home_disable_btn.grid(row=10, column=0, sticky="s", padx=5, pady=5)
 
-        #############################  ACCOUNT_INFORMATION ######################################
-        self.birthdate_lbl = CTkLabel(
-            self.second_frame, text=render_text("تاريخ الميلاد")
-        )
-        self.birthdate_lbl.grid(row=2, column=2, sticky="nsew")
-        self.birthdate_entry = CTkEntry(
-            self.second_frame, placeholder_text="YYYY-MM-DD"
-        )
-        self.birthdate_entry.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-        self.gender_lbl = CTkLabel(self.second_frame, text=render_text("الجنس"))
-        self.gender_lbl.grid(row=3, column=2, sticky="nsew")
-        self.gender_entry = CTkOptionMenu(self.second_frame, values=["ذكر", "انثى"])
-        self.gender_entry.grid(row=3, column=1, sticky="nsew", padx=5, pady=5)
-        self.residenceAddress_lbl = CTkLabel(
-            self.second_frame, text=render_text("عنوان السكن")
-        )
-        self.residenceAddress_lbl.grid(row=4, column=2, sticky="nsew")
-        self.residenceAddress_entry = CTkEntry(
-            self.second_frame, placeholder_text="menofia"
-        )
-        self.residenceAddress_entry.grid(row=4, column=1, sticky="nsew", padx=5, pady=5)
-        self.passportNumber_lbl = CTkLabel(
-            self.second_frame, text=render_text("رقم الجواز")
-        )
-        self.passportNumber_lbl.grid(row=5, column=2, sticky="nsew")
-        self.passportNumber_entry = CTkEntry(
-            self.second_frame, placeholder_text="A123456789"
-        )
-        self.passportNumber_entry.grid(row=5, column=1, sticky="nsew", padx=5, pady=5)
-        self.passportDateOfIssue_lbl = CTkLabel(
-            self.second_frame, text=render_text("تاريخ الاصدار")
-        )
-        self.passportDateOfIssue_lbl.grid(row=6, column=2, sticky="nsew")
-        self.passportDateOfIssue_entry = CTkEntry(
-            self.second_frame, placeholder_text="YYYY-MM-DD"
-        )
-        self.passportDateOfIssue_entry.grid(
-            row=6, column=1, sticky="nsew", padx=5, pady=5
-        )
-        self.passportDateOfExpiry_lbl = CTkLabel(
-            self.second_frame, text=render_text("تاريخ الانتهاء")
-        )
-        self.passportDateOfExpiry_lbl.grid(row=7, column=2, sticky="nsew")
-        self.passportDateOfExpiry_entry = CTkEntry(
-            self.second_frame, placeholder_text="YYYY-MM-DD"
-        )
-        self.passportDateOfExpiry_entry.grid(
-            row=7, column=1, sticky="nsew", padx=5, pady=5
-        )
-
-        self.save_button = CTkButton(
-            self.second_frame, text=render_text("حفظ"), command=self.get_data
-        )
-        self.save_button.grid(row=10, column=2, sticky="s", padx=5, pady=5)
-        self.applicant_edit_btn = CTkButton(
-            self.second_frame,
-            text=render_text("تعديل"),
-            command=self.enable_applcant_data,
-            state="disabled",
-        )
-        self.applicant_edit_btn.grid(row=10, column=0, sticky="s", padx=5, pady=5)
-        ############################ IMG ##############################################
-
-        self.passport_img_lbl = CTkLabel(
-            self.third_frame, text=render_text("صورة الجواز")
-        )
-        self.passport_img_lbl.grid(row=0, column=2, sticky="nsew")
-        self.passport_img_btn = CTkButton(
-            self.third_frame,
-            text=render_text("تحميل"),
-            command=lambda: self.browse_file("passport"),
-        )
-        self.passport_img_btn.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.passport_img_state = CTkLabel(
-            self.third_frame, text=render_text("لم يتم تحميل الصورة"), text_color=danger
-        )
-        self.passport_img_state.grid(row=0, column=0, sticky="nsew")
-        if self.visa_id == 3:
-            self.nulla_img_lbl = CTkLabel(
-                self.third_frame, text=render_text("صورة العقد")
-            )
-            self.nulla_img_btn = CTkButton(
-                self.third_frame,
-                text=render_text("تحميل"),
-                command=lambda: self.browse_file("nulla"),
-            )
-            self.nulla_img_btn.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-            self.nulla_img_lbl.grid(row=1, column=2, sticky="nsew")
-            self.nulla_img_state = CTkLabel(
-                self.third_frame,
-                text=render_text("لم يتم تحميل الصورة"),
-                text_color=danger,
-            )
-            self.nulla_img_state.grid(row=1, column=0, sticky="nsew")
-            self.phonenum_img_lbl = CTkLabel(
-                self.third_frame, text=render_text("صورة رقم الهاتف")
-            )
-            self.phonenum_img_btn = CTkButton(
-                self.third_frame,
-                text=render_text("تحميل"),
-                command=lambda: self.browse_file("phoneNumber"),
-            )
-            self.phonenum_img_btn.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-            self.phonenum_img_lbl.grid(row=2, column=2, sticky="nsew")
-            self.phonenum_img_state = CTkLabel(
-                self.third_frame,
-                text=render_text("لم يتم تحميل الصورة"),
-                text_color=danger,
-            )
-            self.phonenum_img_state.grid(row=2, column=0, sticky="nsew")
-        self.img_save_button = CTkButton(
-            self.third_frame, text=render_text("حفظ"), command=self.save_img_data
-        )
-
-        self.img_save_button.grid(row=4, column=2, sticky="s", padx=5, pady=5)
-        self.img_edit_button = CTkButton(
-            self.third_frame,
-            text=render_text("تعديل"),
-            command=self.edit_img_data,
-            state="disabled",
-        )
-        self.img_edit_button.grid(row=4, column=0, sticky="s", padx=5, pady=5)
-
         #############################ACCOUNTS FRAME######################################
         self.account_test = AccountFrame(
-            "Account Name", "Account Password", True, self.fourth_frame
+            {"username": "Email/Username", "password": "Password"},
+            True,
+            self.fourth_frame,
         )
         self.account_test.grid(
             row=0, column=0, columnspan=3, sticky="nsew", padx=5, pady=5
@@ -389,8 +198,6 @@ class App2(CTkFrame):
         self.second_frame.grid_rowconfigure(10, weight=1)
         self.third_frame.grid_rowconfigure(4, weight=1)
 
-        
-
         #############################################################################
 
         for frame in (self.home_frame, self.second_frame):
@@ -401,12 +208,6 @@ class App2(CTkFrame):
     def select_frame_by_name(self, name):
         self.home_button.configure(
             fg_color=("gray75", "gray25") if name == "home" else "transparent"
-        )
-        self.frame_2_button.configure(
-            fg_color=("gray75", "gray25") if name == "frame_2" else "transparent"
-        )
-        self.frame_3_button.configure(
-            fg_color=("gray75", "gray25") if name == "frame_3" else "transparent"
         )
         self.frame_5_button.configure(
             fg_color=("gray75", "gray25") if name == "frame_5" else "transparent"
@@ -422,8 +223,6 @@ class App2(CTkFrame):
                 self.sixth_frame.grid(row=0, column=1, sticky="nsew")
             else:
                 self.sixth_frame.grid_forget()
-
-        
 
         if name == "home":
             self.home_frame.grid(row=0, column=1, sticky="nsew")
@@ -450,7 +249,6 @@ class App2(CTkFrame):
         else:
             self.fourth_frame.grid_forget()
 
-        
     def home_button_event(self):
         self.select_frame_by_name("home")
 
@@ -463,7 +261,6 @@ class App2(CTkFrame):
     def frame_5_button_event(self):
         self.select_frame_by_name("frame_5")
 
-    
     def frame_6_button_event(self):
         self.customers_display.customers = []
         Thread(target=lambda: asyncio.run(db.get_accounts(self))).start()
@@ -473,14 +270,8 @@ class App2(CTkFrame):
     def frame_4_button_event(self):
         self.select_frame_by_name("frame_4")
 
-    def add_applicant(self, account_name, account_password, validate=True):
-        if validate:
-            if self.username_entry.get() == "" or self.password_entry.get() == "":
-                messagebox.showerror(title="خطأ", message="برجاء تحديد جميع الحقول")
-                return
-        account_test = AccountFrame(
-            account_name, account_password, False, self.fourth_frame
-        )
+    def add_applicant(self, data, validate=True):
+        account_test = AccountFrame(data, False, self.fourth_frame)
         account_test.grid(
             row=len(self.applicants) + 1,
             column=0,
@@ -490,55 +281,7 @@ class App2(CTkFrame):
             pady=5,
         )
         self.applicants.append(account_test)
-        self.print_in_log(f"تم حفظ {account_name} بنجاح", color=info)
-        self.username_entry.delete(0, "end")
-        if self.save_password_check.get() == "off":
-            self.password_entry.delete(0, "end")
-        self.username_entry.focus()
-
-    def get_data(self):
-        if not self.validation(self.second_frame):
-            messagebox.showerror(title="خطأ", message="برجاء تعبئة جميع الحقول")
-            return
-        data = {
-            "birthDate": "",
-            "residenceAddress": "",
-            "passportNumber": "",
-            "passportDateOfIssue": "",
-            "passportDateOfExpiry": "",
-            "gender": "M" if self.gender_entry.get() == "ذكر" else "F",
-            "visa_id": str(self.visa_id),
-        }
-        selected_data = []
-        for child in self.second_frame.winfo_children():
-            if isinstance(child, CTkEntry):
-                selected_data.append(child.get())
-        for i in range(len(selected_data)):
-            data[list(data.keys())[i]] = selected_data[i]
-        secretvars.data["account_data"] = data
-        self.applicant = Applicant(**data)
-        self.disable_applcant_data()
-        self.print_in_log("تم تحديد بيانات المستخدم", color=success)
-
-    def disable_applcant_data(self):
-        for child in self.second_frame.winfo_children():
-            if (
-                isinstance(child, CTkEntry)
-                or isinstance(child, CTkButton)
-                or isinstance(child, CTkOptionMenu)
-            ):
-                child.configure(state="disabled")
-        self.applicant_edit_btn.configure(state="normal")
-
-    def enable_applcant_data(self):
-        for child in self.second_frame.winfo_children():
-            if (
-                isinstance(child, CTkEntry)
-                or isinstance(child, CTkButton)
-                or isinstance(child, CTkOptionMenu)
-            ):
-                child.configure(state="normal")
-        self.applicant_edit_btn.configure(state="disabled")
+        self.print_in_log(f"تم حفظ {data["username"]} بنجاح", color=info)
 
     def validation(self, frame):
         for child in frame.winfo_children():
@@ -652,16 +395,21 @@ class App2(CTkFrame):
             self.after_cancel(self.start_delay)
         finally:
             self.print_in_log("تم ايقاف البرنامج", color=warning)
-            self.enable_applcant_data()
+            # self.enable_applcant_data()
             self.enbale_home_data()
-            self.edit_img_data()
+            # self.edit_img_data()
             secretvars.MAIN_FLAG = 0
             self.bot.main_thread_flag = 0
             self.bot = None
+            if secretvars.accounts:
+                for account in secretvars.accounts:
+                    account.main_thread_flag = 0
+                secretvars.accounts = []
+
             self.enbale_home_data()
 
     def start_execution(self):
-        if not (self.validate_all_fields()):
+        if not self.validate_all_fields():
             return
         self.disable_home_data()
         countdown = Countdown(self.target_hour, 55, 0)
@@ -684,18 +432,15 @@ class App2(CTkFrame):
 
     def bot_excution(self):
         secretvars.MAIN_FLAG = 1
-        self.save_img_data()
-        self.get_data()
         self.bot = Bot(
             self,
             self.applicant,
             self.documents,
             self.office_id_option.get(),
             self.visa_id,
-            0 if self.mode_option.get() == render_text("استكمال حجز") else 1,
             1 if self.visa_price_options.get() == "Standard - EGP 1750" else 2,
             self.start_with_timer_check.get() == "on",
-            self.otp_entry.get(),
+            "",
             self.saved_operations,
         )
         self.bot.accounts = self.get_all_applicants()
@@ -713,15 +458,6 @@ class App2(CTkFrame):
                 title="خطأ", message="برجاء تحديد مستخدم واحد علي الاقل"
             )
             self.select_frame_by_name("frame_4")
-            return False
-        for key in self.documents:
-            if not (self.documents[key][0]):
-                messagebox.showerror(title="خطأ", message="برجاء تحديد جميع المستندات")
-                self.select_frame_by_name("frame_3")
-                return False
-        if not (self.validation(self.second_frame)):
-            self.select_frame_by_name("frame_2")
-            messagebox.showerror(title="خطأ", message="برجاء تعبئة جميع البيانات")
             return False
         return True
 
@@ -747,24 +483,9 @@ class App2(CTkFrame):
 
     def change_color_for_accepted_user(self, user):
         for account in self.applicants:
-            if account.get_applicant_data()[0] == user:
+            if account.get_applicant_data()["username"] == user:
                 account.change_color()
                 break
-
-    def sign_otp(self, otp):
-        self.otp_entry.configure(state="normal")
-        self.otp_entry.delete(0, "end")
-        self.otp_entry.insert(0, otp)
-        self.otp_entry.configure(state="disabled")
-
-    def resend_otp(self):
-        if self.get_all_applicants() == []:
-            messagebox.showerror("خطأ", "الرجاء تحديد الحسابات")
-            return
-        self.resend_otp_btn.configure(state="disabled")
-        account = self.get_all_applicants()[0]
-        Thread(target=lambda: asyncio.run(rescute_otp(account, self))).start()
-        self.select_frame_by_name("frame_5")
 
     def clear_all_entries(self):
         for widget in self.second_frame.winfo_children():
@@ -786,14 +507,12 @@ class App2(CTkFrame):
             account_data = data["account_data"]
             users = data["users"]
             media = data["media"]
-            self.birthdate_entry.insert(0, account_data["birthDate"])
             self.gender_entry.set(
                 render_text("ذكر")
                 if account_data["gender"] == "M"
                 else render_text("انثي")
             )
             self.residenceAddress_entry.insert(0, account_data["residenceAddress"])
-            self.passportNumber_entry.insert(0, account_data["passportNumber"])
             self.passportDateOfIssue_entry.insert(
                 0, account_data["passportDateOfIssue"]
             )
@@ -806,7 +525,7 @@ class App2(CTkFrame):
                 if media[key]:
                     self.browse_file(key, media[key], False)
 
-            self.otp_entry.insert(0, data["otp"])
+            # self.otp_entry.insert(0, data["otp"])
             self.office_id_option.set(data["office"])
             self.visa_price_options.set(data["visa_price"])
 
@@ -824,7 +543,7 @@ class App2(CTkFrame):
 
     def refresh_customer_display(self):
         self.frame_6_button_event()
-    
+
     def enable_saved_customers(self):
         self.frame_6_button = CTkButton(
             self.navigation_frame,
@@ -839,34 +558,62 @@ class App2(CTkFrame):
         )
         self.frame_6_button.grid(row=5, column=0, sticky="ew")
         self.sixth_frame = CTkFrame(self, corner_radius=0, fg_color="transparent")
-        
-         ###############################SAVED OPERATIONS#####################################
+
+        ###############################SAVED OPERATIONS#####################################
         self.customers_display = CustomerDisplay(self.sixth_frame)
         self.customers_display.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.customer_manager = CustomersManagement(self.sixth_frame)
         self.customer_manager.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
-        
+
         #####################################################################################
-        
+
         self.sixth_frame.grid_columnconfigure(0, weight=1)
         self.sixth_frame.grid_rowconfigure(0, weight=9)
         self.sixth_frame.grid_rowconfigure(1, weight=1)
-        
-        
-        
+
+    def open_fillDataTopLevel(self):
+        if (
+            self.fill_data_toplevel_window is None
+            or not self.fill_data_toplevel_window.winfo_exists()
+        ):
+            self.fill_data_toplevel_window = FillData(self)
+        else:
+            self.fill_data_toplevel_window.focus()
+
+    def BookDataViewTopLevel(self, data):
+        book_data_view_toplevel = BookDataView(self, data)
+        self.top_views.append(book_data_view_toplevel)
+
+    def recieve_data_from_fillData(self, data):
+        self.add_applicant(data)
+
+    def update_account(self, data, account_obj):
+        self.open_fillDataTopLevel()
+        self.fill_data_toplevel_window.update_data(data, account_obj)
+
+    def get_timing(self):
+        return [self.target_hour, self.target_minute, self.target_second]
 
 
 class AccountFrame(CTkFrame):
-    def __init__(self, name, password, hidden=False, *args, **kwargs):
+    def __init__(self, data, hidden=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = name
-        self.password = password
-        self.grid_columnconfigure((0, 1, 2), weight=1, uniform="column")
+        self.data = data
 
-        self.account_name = CTkLabel(self, text=name, font=CTkFont(size=12))
-        self.account_password = CTkLabel(self, text=password, font=CTkFont(size=12))
-        self.account_name.grid(row=0, column=2, sticky="nsew", padx=25)
-        self.account_password.grid(row=0, column=1, sticky="nsew", padx=25)
+        self.name = StringVar(self, data["username"])
+        self.password = StringVar(self, data["password"])
+        self.name.set
+        self.main_window = self.master.master.master.master
+        self.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1, uniform="column")
+
+        self.account_name = CTkLabel(
+            self, textvariable=self.name, font=CTkFont(size=12)
+        )
+        self.account_password = CTkLabel(
+            self, textvariable=self.password, font=CTkFont(size=12)
+        )
+        self.account_name.grid(row=0, column=5, sticky="nsew", padx=10)
+        self.account_password.grid(row=0, column=4, sticky="nsew", padx=10)
         if not (hidden):
             self.delet_btn = CTkButton(
                 self,
@@ -876,18 +623,88 @@ class AccountFrame(CTkFrame):
                 fg_color=danger_btn,
                 hover_color=danger_hover,
             )
-            self.delet_btn.grid(row=0, column=0, sticky="nsew", padx=50)
+            self.delet_btn.grid(row=0, column=3, sticky="nsew", padx=10)
+            self.update_btn = CTkButton(
+                self,
+                text=render_text("تعديل"),
+                font=CTkFont(size=12),
+                fg_color=warning_btn,
+                hover_color=warning_hover,
+                command=self.update_account,
+            )
+            self.update_btn.grid(row=0, column=2, sticky="nsew", padx=10)
+            self.continue_btn = CTkButton(
+                self,
+                text=render_text("استكمال حجز"),
+                font=CTkFont(size=12),
+                fg_color=primary_btn,
+                hover_color=primary_hover,
+                command=self.continue_booking,
+            )
+            self.continue_btn.grid(row=0, column=1, sticky="nsew", padx=10)
+
+            self.search_for_availability_btn = CTkButton(
+                self,
+                text=render_text("البحث عن مواعيد"),
+                font=CTkFont(size=12),
+                fg_color=success_btn,
+                hover_color=success_hover,
+                command=self.search_for_availability_fun,
+            )
+            self.search_for_availability_btn.grid(
+                row=0, column=0, sticky="nsew", padx=10
+            )
 
     def delete(self):
-        self.master.master.master.master.applicants.remove(self)
+        self.main_window.applicants.remove(self)
         self.destroy()
 
     def get_applicant_data(self):
-        return [self.name, self.password]
+        self.data["visa_id"] = self.main_window.visa_id
+        return self.data
 
     def change_color(self):
         self.account_name.configure(text_color=success)
         self.account_password.configure(text_color=success)
+
+    def update_account(self):
+        self.main_window.update_account(self.data, self)
+
+    def continue_booking(self):
+        account = Account(
+            self.get_applicant_data(),
+            self.main_window,
+            1 if self.main_window.office_id_option.get() == "Cairo" else 2,
+            (
+                1
+                if self.main_window.visa_price_options.get() == "Standard - EGP 1750"
+                else 2
+            ),
+            self.main_window.get_timing(),
+            False,
+        )
+        secretvars.MAIN_FLAG = 1
+        Thread(target=account.continue_booking).start()
+        self.main_window.disable_home_data()
+        self.main_window.select_frame_by_name("frame_5")
+
+    def search_for_availability_fun(self):
+        account = Account(
+            self.get_applicant_data(),
+            self.main_window,
+            1 if self.main_window.office_id_option.get() == "Cairo" else 2,
+            (
+                1
+                if self.main_window.visa_price_options.get() == "Standard - EGP 1750"
+                else 2
+            ),
+            self.main_window.get_timing(),
+            False,
+        )
+        secretvars.MAIN_FLAG = 1
+        Thread(target=account.search_fun).start()
+        self.main_window.disable_home_data()
+        self.main_window.select_frame_by_name("frame_5")
 
 
 class CustomersManagement(CTkFrame):
@@ -934,7 +751,7 @@ class CustomersManagement(CTkFrame):
         name = self.customer_entry.get()
         secretvars.data["office"] = self.main_window.office_id_option.get()
         secretvars.data["visa_price"] = self.main_window.visa_price_options.get()
-        secretvars.data["otp"] = self.main_window.otp_entry.get()
+        # secretvars.data["otp"] = self.main_window.otp_entry.get()
         users = self.main_window.get_all_applicants()
         secretvars.data["users"] = []
         for user in users:
@@ -989,14 +806,16 @@ class CustomerDisplay(CTkScrollableFrame):
         for m in range(len(total)):
             total[m].grid(row=m, column=0, sticky="nsew", pady=5, padx=5)
 
-    def add_customer(self, customer_name, owner_id, customer_id, is_accepted, is_booked):
+    def add_customer(
+        self, customer_name, owner_id, customer_id, is_accepted, is_booked
+    ):
         customer = Customer(
             master=self,
             name=customer_name,
             id=customer_id,
             is_accepted=is_accepted,
             is_booked=is_booked,
-            owner_id=owner_id
+            owner_id=owner_id,
         )
         self.customers.append(customer)
 
@@ -1040,7 +859,7 @@ class CustomerDisplay(CTkScrollableFrame):
 
 
 class Customer(CTkFrame):
-    def __init__(self, name, id, owner_id ,is_accepted, is_booked, *args, **kwargs):
+    def __init__(self, name, id, owner_id, is_accepted, is_booked, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.main_window = self.master.master.master.master.master
         self.is_accepted = is_accepted
@@ -1178,3 +997,278 @@ class AccountsManager(CTkToplevel):
             self.master.add_applicant(account, self.entry.get().strip(), False)
         self.destroy()
         return
+
+
+class FillData(CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("900x480")
+        self.title("اضافة الحسابات")
+        self.main_window = self.master
+        self.account_obj = None
+
+        self.documents = (
+            {"passport": [None, 100]}
+            if self.main_window.visa_id != 3
+            else {
+                "nulla": [None, 187],
+                "passport": [None, 100],
+                "phoneNumber": [None, 188],
+            }
+        )
+
+        self.grid_columnconfigure((0, 1, 2), weight=1, uniform="column")
+        self.default_width = 100
+
+        self.email_lbl = CTkLabel(self, text=render_text("اسم المستخدم/الايميل"))
+        self.email_lbl.grid(row=0, column=2, sticky="nsew")
+        self.email_entry = CTkEntry(
+            master=self, width=self.default_width, placeholder_text="Email/Username"
+        )
+        self.email_entry.grid(row=0, column=1, sticky="nsew", padx=30, pady=5)
+        self.password_lbl = CTkLabel(self, text=render_text("كلمة المرور"))
+        self.password_lbl.grid(row=1, column=2, sticky="nsew")
+        self.password_entry = CTkEntry(
+            master=self, width=self.default_width, show="*", placeholder_text="Password"
+        )
+        self.password_entry.grid(row=1, column=1, sticky="nsew", padx=30, pady=5)
+        self.gender_pick_lbl = CTkLabel(self, text=render_text("الجنس"))
+        self.gender_pick_lbl.grid(row=2, column=2, sticky="nsew")
+        self.gender_pick_options = ["ذكر", "انثى"]
+        self.gender_pick = CTkOptionMenu(
+            master=self, values=self.gender_pick_options, width=self.default_width
+        )
+        self.gender_pick.grid(row=2, column=1, sticky="nsew", padx=30, pady=5)
+        self.residence_address_lbl = CTkLabel(self, text=render_text("عنوان السكن"))
+        self.residence_address_lbl.grid(row=3, column=2, sticky="nsew")
+        self.residence_address_entry = CTkEntry(
+            master=self, width=self.default_width, placeholder_text="Menoufia"
+        )
+        self.residence_address_entry.grid(
+            row=3, column=1, sticky="nsew", padx=30, pady=5
+        )
+        self.passport_issue_date_lbl = CTkLabel(
+            self, text=render_text("تاريخ اصدار الباسبور")
+        )
+        self.passport_issue_date_lbl.grid(row=4, column=2, sticky="nsew")
+        self.passport_issue_date_entry = CTkEntry(
+            master=self, width=self.default_width, placeholder_text="YYYY-MM-DD"
+        )
+        self.passport_issue_date_entry.grid(
+            row=4, column=1, sticky="nsew", padx=30, pady=5
+        )
+        self.passport_expiry_date_lbl = CTkLabel(
+            self, text=render_text("تاريخ انتهاء الباسبور")
+        )
+        self.passport_expiry_date_lbl.grid(row=5, column=2, sticky="nsew")
+        self.passport_expiry_date_entry = CTkEntry(
+            master=self, width=self.default_width, placeholder_text="YYYY-MM-DD"
+        )
+        self.passport_expiry_date_entry.grid(
+            row=5, column=1, sticky="nsew", padx=30, pady=5
+        )
+        self.passport_img_lbl = CTkLabel(self, text=render_text("صورة الجواز"))
+        self.passport_img_lbl.grid(row=6, column=2, sticky="nsew")
+        self.passport_img_btn = CTkButton(
+            self,
+            text=render_text("تحميل"),
+            width=self.default_width,
+            fg_color=primary_btn,
+            hover_color=primary_hover,
+            command=lambda: self.browse_file("passport"),
+        )
+        self.passport_img_btn.grid(row=6, column=1, sticky="nsew", padx=30, pady=5)
+        self.passport_img_status = CTkLabel(
+            self, text=render_text("غير موجود"), text_color=danger
+        )
+        self.passport_img_status.grid(row=6, column=0, sticky="nsew")
+
+        if self.main_window.visa_id == 3:
+
+            self.nulla_img_lbl = CTkLabel(self, text=render_text("صورة العقد"))
+            self.nulla_img_lbl.grid(row=7, column=2, sticky="nsew")
+            self.nulla_img_btn = CTkButton(
+                self,
+                text=render_text("تحميل"),
+                width=self.default_width,
+                fg_color=primary_btn,
+                hover_color=primary_hover,
+                command=lambda: self.browse_file("nulla"),
+            )
+            self.nulla_img_btn.grid(row=7, column=1, sticky="nsew", padx=30, pady=5)
+            self.phone_img_lbl = CTkLabel(self, text=render_text("صورة الهاتف"))
+            self.phone_img_lbl.grid(row=8, column=2, sticky="nsew")
+            self.phone_img_btn = CTkButton(
+                self,
+                text=render_text("تحميل"),
+                width=self.default_width,
+                fg_color=primary_btn,
+                hover_color=primary_hover,
+                command=lambda: self.browse_file("phoneNumber"),
+            )
+            self.phone_img_btn.grid(row=8, column=1, sticky="nsew", padx=30, pady=5)
+
+            self.nulla_img_status = CTkLabel(
+                self, text=render_text("غير موجود"), text_color=danger
+            )
+            self.nulla_img_status.grid(row=7, column=0, sticky="nsew")
+
+            self.phonenum_img_status = CTkLabel(
+                self, text=render_text("غير موجود"), text_color=danger
+            )
+            self.phonenum_img_status.grid(row=8, column=0, sticky="nsew")
+
+        self.add_btn = CTkButton(
+            self,
+            text=render_text("اضافة"),
+            width=self.default_width,
+            command=self.collect_data,
+        )
+        self.add_btn.grid(row=9, column=1, sticky="nsew", pady=50)
+
+    def collect_data(self):
+        if not self.validate_data():
+            messagebox.showerror("خطأ", "الرجاء التأكد من ملء جميع الحقول")
+            return
+        data = {
+            "documents": self.documents,
+            "username": self.email_entry.get(),
+            "password": self.password_entry.get(),
+            "gender": "M" if self.gender_pick.get() == "ذكر" else "F",
+            "residence_address": self.residence_address_entry.get(),
+            "passport_issue_date": self.passport_issue_date_entry.get(),
+            "passport_expiry_date": self.passport_expiry_date_entry.get(),
+        }
+        if self.account_obj:
+            self.account_obj.data = data
+            self.account_obj.name.set(data["username"])
+            self.account_obj.password.set(data["password"])
+            self.account_obj = None
+            self.destroy()
+            return
+        self.main_window.recieve_data_from_fillData(data)
+        self.destroy()
+
+    def browse_file(self, type, file_path=None, should_pop_up=True):
+        if should_pop_up:
+            file_path = filedialog.askopenfilename(
+                initialdir=os.curdir, title="Select a File"
+            )
+        if not (os.path.exists(file_path)):
+            messagebox.showerror(
+                title="خطأ",
+                message="الملف {0} غير موجود".format(file_path.split("/")[-1]),
+            )
+            return
+        self.documents[type][0] = file_path
+        match type:
+            case "passport":
+                self.main_window.print_in_log("تم تحديد جواز السفر", color=info)
+                self.passport_img_status.configure(
+                    text=file_path.split("/")[-1], text_color=success
+                )
+                secretvars.data["media"]["passport"] = file_path
+            case "nulla":
+                self.main_window.print_in_log("تم تحديد صورة الهوية", color=info)
+                self.nulla_img_status.configure(
+                    text=file_path.split("/")[-1], text_color=success
+                )
+                secretvars.data["media"]["nulla"] = file_path
+            case "phoneNumber":
+                self.main_window.print_in_log("تم تحديد رقم الهاتف", color=info)
+                self.phonenum_img_status.configure(
+                    text=file_path.split("/")[-1], text_color=success
+                )
+                secretvars.data["media"]["phoneNumber"] = file_path
+
+    def validate_data(self):
+        for i in self.documents:
+            if self.documents[i][0] == None:
+                print(i)
+                return False
+        for child in self.winfo_children():
+            if isinstance(child, CTkEntry):
+                if child.get() == "":
+                    return False
+        return True
+
+    def update_data(self, data, account_obj=None):
+        self.account_obj = account_obj
+        self.email_entry.insert(0, data["username"])
+        self.password_entry.insert(0, data["password"])
+        self.residence_address_entry.insert(0, data["residence_address"])
+        self.passport_issue_date_entry.insert(0, data["passport_issue_date"])
+        self.passport_expiry_date_entry.insert(0, data["passport_expiry_date"])
+        self.gender_pick.set(
+            render_text("ذكر") if data["gender"] == "M" else render_text("انثي")
+        )
+        for key in data["documents"]:
+            if data["documents"][key][0]:
+                self.browse_file(key, data["documents"][key][0], False)
+
+
+class BookDataView(CTkToplevel):
+    def __init__(self, master, data,*args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+        self.frames = []
+        self.resizable(False, False)
+        self.geometry("1024x400")
+        self.title("بيانات خاصة بالحجز")
+        self.grid_columnconfigure(0, weight=1)
+        self.ex_data = data
+        
+        for data in self.ex_data:
+            frame_test = DataView(self, data, self.ex_data[data])
+            frame_test.grid(row=len(self.frames), column=0, sticky="nsew", pady=5)
+            self.frames.append(frame_test)
+
+
+class DataView(CTkFrame):
+    def __init__(self, master, key, value, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+        self.grid_columnconfigure((0, 1, 2), weight=1, uniform="column")
+        self.key = key
+        self.value = value
+        self.btn_var = StringVar(self, render_text("نسخ"))
+
+        self.key_lbl = CTkLabel(self, text=self.key, font=CTkFont(size=15))
+        self.key_lbl.grid(row=0, column=0, sticky="nsew", padx=5)
+
+        self.value_lbl = CTkLabel(
+            self,
+            text=self.value if self.value else str(self.value),
+            font=CTkFont(size=15),
+        )
+        self.value_lbl.grid(row=0, column=1, sticky="nsew", padx=25)
+
+        self.copy_btn = CTkButton(
+            self,
+            textvariable=self.btn_var,
+            font=CTkFont(size=15),
+            command=self.copy_action,
+            fg_color=primary_btn,
+            hover_color=primary_hover,
+            
+        )
+        
+        self.copy_btn.grid(row=0, column=2, sticky="nsew", padx=50)
+        if self.key == "AccountEmail":
+            self.copy_btn.configure(state="disabled")
+        
+        
+    
+    def copy_action(self):
+        self.btn_var.set(render_text("تم النسخ!"))
+        self.copy_btn.configure(
+            fg_color="#22bb33", state="disabled", text_color="#ffffff"
+        )
+        self.master.clipboard_clear()
+        self.master.clipboard_append(self.value)
+        self.after(1000, lambda: self.btn_var.set(render_text("نسخ")))
+        self.after(
+            1000,
+            lambda: self.copy_btn.configure(
+                fg_color=primary_btn, state="normal", text_color="#DCE4EE"
+            ),
+        )
+        

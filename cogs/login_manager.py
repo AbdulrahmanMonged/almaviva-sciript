@@ -56,6 +56,8 @@ async def check_login(username, password, window: CTk):
                                 )
                                 secretvars.owner_id = user[0]
                                 secretvars.is_admin = user[-1]
+                                secretvars.username = username
+                                secretvars.password = password 
                                 window.init_canva()
                                 return
                             else:
@@ -71,6 +73,8 @@ async def check_login(username, password, window: CTk):
                                     )
                                     secretvars.owner_id = user[0]
                                     secretvars.is_admin = user[-1]
+                                    secretvars.username = username
+                                    secretvars.password = password 
                                     window.init_canva()
                                     return
                 window.enable()

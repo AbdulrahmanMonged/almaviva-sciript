@@ -1,20 +1,18 @@
 class Applicant:
     def __init__(
         self,
-        birthDate,
         gender,
         residenceAddress,
-        passportNumber,
         passportDateOfIssue,
         passportDateOfExpiry,
         visa_id,
     ):
         self.name = ""
         self.surname = ""
-        self.birthDate = birthDate
+        self.birthDate = ""
         self.gender = gender
         self.residenceAddress = residenceAddress
-        self.passportNumber = passportNumber
+        self.passportNumber = ""
         self.passportDateOfIssue = passportDateOfIssue
         self.passportDateOfExpiry = passportDateOfExpiry
         self.phoneNumber = ""
@@ -28,6 +26,10 @@ class Applicant:
         self.surname = incoming_data["family_name"]
         self.email = incoming_data["email"]
         self.phoneNumber = incoming_data["phone"]
+        self.passportNumber = incoming_data["passportNumber"]
+        dates = incoming_data["dateOfBirth"].split("/")
+        self.birthDate = f"{dates[2]}-{dates[0]}-{dates[1]}"
+        
 
     def set_bot(self, bot):
         self.bot = bot
